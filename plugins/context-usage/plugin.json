@@ -2,5 +2,5 @@
   "name": "context-usage-cn",
   "title": "上下文用量",
   "description": "在会话侧面板查看已用 token、有效上下文上限和用量明细。",
-  "version": "0.1.0"
+  "version": "0.2.0"
 }
