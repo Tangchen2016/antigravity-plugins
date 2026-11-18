@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>上下文用量</title>
+  <style>
+    :root { color-scheme: light dark; }
+    * { box-sizing: border-box; }
+    [hidden] { display: none !important; }
+    body {
+      margin: 0;
+      font: 13px/1.55 system-ui, sans-serif;
+      background: var(--background, Canvas);
+      color: var(--foreground, CanvasText);
+    }
+    main { padding: 18px 16px; }
+    h1, h2, p { margin: 0; }
+    h1 { font-size: 14px; font-weight: 650; }
+    h2 { font-size: 13px; font-weight: 600; margin-bottom: 6px; }
+    .muted { color: var(--muted-foreground, GrayText); }
+    #status { margin: 16px 0; }
+    .summary { margin: 16px 0 20px; }
+    .summary-line, dl > div {
+      display: flex; align-items: baseline; justify-content: space-between; gap: 8px;
+    }
+    #percentage { font-size: 28px; font-weight: 650; letter-spacing: -.04em; }
+    #counts, #percentage, dd { font-variant-numeric: tabular-nums; white-space: nowrap; }
+    .track {
+      height: 6px;
+      border-radius: 9px;
+      overflow: hidden;
+      background: color-mix(in srgb, currentColor 13%, transparent);
+      margin: 8px 0;
+    }
+    #fill { display: block; height: 100%; background: var(--primary, #518af2); }
+    dl { margin: 0; }
+    dl > div {
+      padding: 7px 0;
+      border-top: 1px solid var(--border, color-mix(in srgb, currentColor 12%, transparent));
+    }
+    dd { margin: 0; }
+    #summary-note { font-size: 12px; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>上下文用量</h1>
+    <p id="status" class="muted" role="status">正在读取当前会话…</p>
+    <section id="usage" hidden aria-label="会话上下文统计">
+      <div class="summary">
+        <div class="summary-line">
+          <strong id="percentage"></strong>
+          <span id="counts" class="muted"></span>
+        </div>
+        <div class="track" aria-hidden="true"><span id="fill"></span></div>
+        <p id="summary-note" class="muted"></p>
+      </div>
+      <section id="breakdown" hidden>
+        <h2>用量明细</h2>
+        <dl id="groups"></dl>
+      </section>
+    </section>
+  </main>
+  <script src="/preload.js"></script>
+  <script>
+    const byId = (id) => document.getElementById(id);
+    const status = byId('status');
+    const usage = byId('usage');
+    const groups = byId('groups');
+    const bridge = window.sidecar;
+    const conversationId = bridge?.conversationId;
+    const number = new Intl.NumberFormat('zh-CN');
+    const percentage = new Intl.NumberFormat('zh-CN', { style: 'percent', maximumFractionDigits: 1 });
+    const labels = new Map([
+      ['messages', '会话消息'],
+      ['conversation', '会话消息'],
+      ['system prompt', '系统提示词'],
+      ['system instructions', '系统指令'],
+      ['tools', '工具定义'],
+      ['tool definitions', '工具定义'],
+      ['free', '可用空间'],
+    ]);
+    const messages = {
+      'no-conversation': '打开一个会话后即可查看用量。',
+      pending: '等待 Antigravity 提供统计。发送一条消息后会自动刷新。',
+      unavailable: '暂时无法获取上下文用量，面板会自动重试。',
+    };
+
+    function render(data) {
+      if (data.state !== 'ready') {
+        usage.hidden = true;
+        status.hidden = false;
+        status.textContent = messages[data.state] || messages.unavailable;
+        return;
+      }
+      const ratio = data.used / data.limit;
+      byId('percentage').textContent = percentage.format(ratio);
+      byId('counts').textContent = `${number.format(data.used)} / ${number.format(data.limit)} token`;
+      byId('fill').style.width = `${Math.min(100, ratio * 100)}%`;
+      byId('summary-note').textContent = `预计还可用 ${number.format(Math.max(0, data.limit - data.used))} token · 按会话有效上限计算`;
+
+      const rows = data.groups.map((group) => {
+        const row = document.createElement('div');
+        const title = document.createElement('dt');
+        title.textContent = labels.get(group.name?.trim().toLowerCase()) || labels.get(group.type?.trim().toLowerCase()) || group.name || '其他';
+        const count = document.createElement('dd');
+        count.textContent = number.format(group.tokens);
+        row.append(title, count);
+        return row;
+      });
+      groups.replaceChildren(...rows);
+      byId('breakdown').hidden = rows.length === 0;
+      status.hidden = true;
+      usage.hidden = false;
+    }
+
+    async function refresh() {
+      if (!document.hidden) {
+        try {
+          const response = await bridge.fetch('/api/usage', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ conversationId }),
+          });
+          render(response.ok ? await response.json() : { state: 'unavailable' });
+        } catch {
+          render({ state: 'unavailable' });
+        }
+      }
+      setTimeout(refresh, 5000);
+    }
+
+    if (conversationId) refresh();
+    else render({ state: 'no-conversation' });
+  </script>
+</body>
+</html>
