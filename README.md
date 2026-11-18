@@ -2,25 +2,21 @@
 
 用于独立版 Google Antigravity App 的插件。
 
-## 上下文用量
+## Context Usage
 
-在当前会话的右侧面板显示已用 token、会话有效上限、占用比例和可用空间。明细取自 Antigravity 本地服务。面板打开时每 5 秒刷新，切到后台时暂停请求。
+`plugins/desktop-context/` 收录了上游 [antigravity-desktop-context](https://github.com/dimitr-io/antigravity-desktop-context) 的原版源码、资源与测试，版本固定在 [`8f7e92b`](https://github.com/dimitr-io/antigravity-desktop-context/tree/8f7e92b007543ec4346337b6f92e7bb5515e3e54)，遵循 [MIT 许可证](plugins/desktop-context/LICENSE)。
+
+面板为英文，包含模型名称、上下文占用图、分类用量、检查点、上下文文件及复制文本报告功能。百分比以模型的原生上下文窗口为分母。
 
 ### 安装
 
-在仓库根目录执行下面的命令，把插件目录复制到 Antigravity 的全局插件目录。项目内安装也可以把插件放到项目的 `.agents/plugins/` 下。
+Antigravity App 需要能在 `PATH` 上找到 Python 3.10 或更新版本。在仓库根目录执行：
 
 ```bash
 mkdir -p ~/.gemini/config/plugins
-cp -R plugins/context-usage ~/.gemini/config/plugins/
+cp -R plugins/desktop-context ~/.gemini/config/plugins/
 ```
 
-重启 Antigravity App，打开 **Customizations → Installed**，找到并启用 **上下文用量**。进入一个会话，从右侧面板的新标签页或 Overview 打开 **上下文用量**。
+打开 **个性化定制 → 已安装**，查看 **Context Usage**。在会话右侧打开 **概览 → 扩展 → Context Usage**。如果界面仍显示旧插件，关闭旧标签页后重新进入「已安装」。
 
-如需卸载，先在 App 中禁用插件，再移除 `~/.gemini/config/plugins/context-usage` 目录。
-
-### 数据口径
-
-插件使用 App 提供的 Sidecar SDK 和 Node 运行时。统计来自当前会话在本地语言服务的 `contextWindowUsage`，无需安装其他运行时或配置 API Key。服务没有返回统计时，面板显示等待状态。
-
-占用百分比使用本地服务返回的有效上下文上限。该接口由 Antigravity App 内部使用，新版本可能调整字段或行为。实现时参考了 [AGY UsageHUD 对接口的记录](https://github.com/ba-lison/agy-usage-hud)。
+详细说明与测试命令见 [上游 README](plugins/desktop-context/README.md)。
