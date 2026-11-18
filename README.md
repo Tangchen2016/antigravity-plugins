@@ -20,3 +20,20 @@ cp -R plugins/desktop-context ~/.gemini/config/plugins/
 打开 **个性化定制 → 已安装**，查看 **上下文用量**。在会话右侧打开 **概览 → 扩展 → 上下文用量**。如果界面仍显示旧插件，关闭旧标签页后重新进入「已安装」。
 
 详细说明与测试命令见 [上游 README](plugins/desktop-context/README.md)。
+
+## 语言包管理
+
+`plugins/language-packs/` 是与「上下文用量」独立的扩展。它内置简体和繁体词库，从本机 `antigravity2-cn` 的词库整理而来。
+
+在仓库根目录复制扩展到 Antigravity 的全局插件目录：
+
+```bash
+mkdir -p ~/.gemini/config/plugins
+cp -R plugins/language-packs ~/.gemini/config/plugins/
+```
+
+在会话中打开 **概览 → 扩展 → 语言包管理**。每次可启用一种语言包。用 **更新词库** 导入 JSON，格式为 `{"英文原文":"译文"}`。启用中的语言包更新后会立即写入热更新目录，主窗口通常在约 3 秒内刷新。停用语言包后会回到基础词库。
+
+扩展依赖已经安装的 `antigravity2-cn` 词库热更新运行时。本机默认目录是 `~/Mine/antigravity2-cn/dicts`。如运行时使用其他目录，可在扩展的 `sidecar.json` 中通过 `env.ANTIGRAVITY_HOT_DICTIONARY_DIR` 设置相应绝对路径。
+
+停用和移除扩展前，请先在管理面板停用当前语言包。语言包由扩展写成独立的词库文件，基础词库不受覆盖。切换语言包适用于主窗口的词典文案，原生菜单和硬编码文案使用当前安装的汉化版本。

@@ -1,0 +1,268 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>语言包管理</title>
+  <style>
+    :root {
+      color-scheme: light dark;
+      --ink: var(--foreground, CanvasText);
+      --surface: var(--background, Canvas);
+      --muted: color-mix(in srgb, var(--ink) 68%, var(--surface));
+      --line: var(--border, color-mix(in srgb, var(--ink) 15%, transparent));
+      --quiet: color-mix(in srgb, var(--ink) 4%, var(--surface));
+      --hover: color-mix(in srgb, var(--ink) 9%, var(--surface));
+      --error: light-dark(#a22323, #ffb4ab);
+    }
+
+    * { box-sizing: border-box; }
+    [hidden] { display: none !important; }
+
+    body {
+      margin: 0;
+      color: var(--ink);
+      background: var(--surface);
+      font: 13px/1.55 system-ui, sans-serif;
+    }
+
+    main { max-inline-size: 620px; padding: 16px; }
+    h1, h2, p { margin: 0; }
+    h1 { font-size: 19px; font-weight: 620; letter-spacing: -.01em; }
+    h2 { font-size: 14px; font-weight: 600; }
+    .muted { color: var(--muted); }
+
+    .intro { margin-block-end: 16px; }
+    .intro p { margin-block-start: 4px; }
+
+    .packs {
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      overflow: hidden;
+    }
+
+    .pack {
+      display: flex;
+      min-width: 0;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px 12px;
+      padding: 12px;
+    }
+
+    .pack + .pack { border-block-start: 1px solid var(--line); }
+    .pack[data-active="true"] { background: var(--quiet); }
+    .pack-info { flex: 1 1 120px; min-width: 0; }
+    .pack-name { display: flex; align-items: baseline; flex-wrap: wrap; gap: 2px 8px; }
+    .pack-status, .pack-meta { font-size: 11px; }
+    .pack-meta { margin-block-start: 2px; font-variant-numeric: tabular-nums; }
+    .pack-actions { display: flex; flex-wrap: wrap; gap: 6px; }
+
+    button {
+      min-block-size: 30px;
+      padding: 3px 8px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: var(--surface);
+      color: var(--ink);
+      font: inherit;
+      white-space: nowrap;
+      cursor: pointer;
+    }
+
+    button:hover:enabled { background: var(--hover); }
+    button:focus-visible { outline: 2px solid currentColor; outline-offset: -3px; }
+    button:disabled { opacity: .55; cursor: default; }
+    .secondary { color: var(--muted); }
+
+    .feedback { margin-block: 12px; overflow-wrap: anywhere; }
+    .feedback button { margin-block-start: 8px; }
+    .error { color: var(--error); }
+    .note { margin-block-start: 12px; font-size: 12px; }
+
+    @media (forced-colors: active) {
+      .pack[data-active="true"] { outline: 1px solid Highlight; outline-offset: -2px; }
+      .error { color: CanvasText; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <header class="intro">
+      <h1>界面语言</h1>
+      <p id="selection" class="muted">正在读取语言包…</p>
+    </header>
+
+    <section id="packs" class="packs" aria-label="语言包" aria-busy="true" hidden>
+      <article class="pack" data-locale="zh-CN" aria-labelledby="simplified-label">
+        <div class="pack-info">
+          <div class="pack-name">
+            <h2 id="simplified-label">简体中文</h2>
+            <span class="pack-status muted" hidden></span>
+          </div>
+          <p class="pack-meta muted"></p>
+        </div>
+        <div class="pack-actions">
+          <button type="button" data-action="activate" aria-label="启用简体中文" disabled>启用</button>
+          <button type="button" data-action="deactivate" aria-label="停用简体中文" disabled hidden>停用</button>
+          <button type="button" data-action="update" class="secondary" aria-label="更新简体中文词库" disabled>更新词库</button>
+          <input type="file" accept=".json,application/json" hidden>
+        </div>
+      </article>
+      <article class="pack" data-locale="zh-TW" aria-labelledby="traditional-label">
+        <div class="pack-info">
+          <div class="pack-name">
+            <h2 id="traditional-label" lang="zh-TW">繁體中文</h2>
+            <span class="pack-status muted" hidden></span>
+          </div>
+          <p class="pack-meta muted"></p>
+        </div>
+        <div class="pack-actions">
+          <button type="button" data-action="activate" aria-label="启用繁体中文" disabled>启用</button>
+          <button type="button" data-action="deactivate" aria-label="停用繁体中文" disabled hidden>停用</button>
+          <button type="button" data-action="update" class="secondary" aria-label="更新繁体中文词库" disabled>更新词库</button>
+          <input type="file" accept=".json,application/json" hidden>
+        </div>
+      </article>
+    </section>
+
+    <div class="feedback">
+      <p id="feedback" role="status" aria-live="polite" hidden></p>
+      <button type="button" id="retry" hidden>重新检查</button>
+    </div>
+    <p class="note muted">词库变更通常在约 3 秒内更新主窗口文案。停用语言包后会恢复当前安装的基础词库。</p>
+  </main>
+  <script src="/preload.js"></script>
+  <script>
+    const labels = { 'zh-CN': '简体中文', 'zh-TW': '繁體中文' };
+    const list = document.querySelector('#packs');
+    const selection = document.querySelector('#selection');
+    const feedback = document.querySelector('#feedback');
+    const retry = document.querySelector('#retry');
+    const rows = Array.from(list.querySelectorAll('.pack'));
+    const number = new Intl.NumberFormat('zh-CN');
+    const time = new Intl.DateTimeFormat('zh-CN', { dateStyle: 'short', timeStyle: 'short' });
+    let state;
+    let busy = false;
+
+    function showFeedback(message, error = false) {
+      feedback.hidden = !message;
+      feedback.classList.toggle('error', error);
+      feedback.textContent = message || '';
+    }
+
+    function render() {
+      list.setAttribute('aria-busy', String(busy));
+      retry.disabled = busy;
+      if (!state) return;
+
+      list.hidden = false;
+      const activeLabel = labels[state.activeLocale];
+      selection.textContent = !state.ready
+        ? '语言包管理暂不可用'
+        : activeLabel ? `当前启用 · ${activeLabel}` : '当前使用基础词库';
+
+      for (const row of rows) {
+        const locale = row.dataset.locale;
+        const pack = state.packs.find((item) => item.locale === locale);
+        const active = state.activeLocale === locale;
+        const available = state.ready && !busy && Boolean(pack);
+        const status = row.querySelector('.pack-status');
+        const meta = row.querySelector('.pack-meta');
+        const activate = row.querySelector('[data-action="activate"]');
+        const deactivate = row.querySelector('[data-action="deactivate"]');
+        const update = row.querySelector('[data-action="update"]');
+
+        row.dataset.active = String(active);
+        status.hidden = !active;
+        status.textContent = pack?.needsApply ? '已保存，待应用' : '已启用';
+        meta.textContent = pack
+          ? `${number.format(pack.entries)} 条词条 · ${pack.source === 'imported' ? '本地导入' : '扩展内置'}`
+          : '未找到词库';
+        const updated = pack?.updatedAt && new Date(pack.updatedAt);
+        if (updated && !Number.isNaN(updated.getTime())) meta.textContent += ` · ${time.format(updated)}`;
+
+        activate.hidden = active && !pack?.needsApply;
+        activate.textContent = active ? '应用更新' : '启用';
+        activate.setAttribute('aria-label', active ? `应用${labels[locale]}更新` : `启用${labels[locale]}`);
+        deactivate.hidden = !active;
+        activate.disabled = deactivate.disabled = update.disabled = !available;
+      }
+    }
+
+    async function request(action, data) {
+      if (!window.sidecar?.fetch) throw new Error('请在 Antigravity 的扩展面板中打开此页面。');
+      // The SDK decodes HTTP chunks separately. ASCII JSON escapes keep multibyte text intact.
+      const body = JSON.stringify(data).replace(/[\u0080-\uffff]/g,
+        (char) => '\\u' + char.charCodeAt(0).toString(16).padStart(4, '0'));
+      const response = await window.sidecar.fetch(`/api/${action}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body,
+      });
+      const result = await response.json();
+      if (result.error) throw new Error(result.error);
+      if (!response.ok || !Array.isArray(result.packs)) throw new Error('无法读取语言包状态，请稍后重试。');
+      return result;
+    }
+
+    async function run(action, data, pending, success) {
+      if (busy) return;
+      busy = true;
+      retry.hidden = true;
+      render();
+      showFeedback(pending);
+      try {
+        state = await request(action, typeof data === 'function' ? await data() : data);
+        retry.hidden = state.ready;
+        showFeedback(state.message || success || '', !state.ready);
+      } catch (error) {
+        if (action === 'state' && !state) selection.textContent = '读取语言包失败';
+        retry.hidden = false;
+        showFeedback(error.message || '操作未完成，请重试。', true);
+      } finally {
+        busy = false;
+        render();
+      }
+    }
+
+    async function readDictionary(file) {
+      let data;
+      try {
+        data = JSON.parse(await file.text());
+      } catch (_error) {
+        throw new Error('无法读取 JSON 词库，请检查文件格式。');
+      }
+      if (!data || typeof data !== 'object' || Array.isArray(data) || !Object.keys(data).length
+          || Object.entries(data).some(([key, value]) => !key.trim() || typeof value !== 'string')) {
+        throw new Error('请选择包含原文和译文的 JSON 词库，两者都应为文字。');
+      }
+      return data;
+    }
+
+    for (const row of rows) {
+      const locale = row.dataset.locale;
+      const label = labels[locale];
+      const fileInput = row.querySelector('input');
+      row.querySelector('[data-action="activate"]').addEventListener('click', () => {
+        run('activate', { locale }, `正在应用${label}…`, `${label}已应用。`);
+      });
+      row.querySelector('[data-action="deactivate"]').addEventListener('click', () => {
+        run('deactivate', {}, '正在停用语言包…', '已恢复基础词库。');
+      });
+      row.querySelector('[data-action="update"]').addEventListener('click', () => fileInput.click());
+      fileInput.addEventListener('change', () => {
+        const [file] = fileInput.files;
+        fileInput.value = '';
+        if (!file) return;
+        run('update', async () => ({ locale, dictionary: await readDictionary(file) }),
+          `正在更新${label}词库…`, `${label}词库已更新。`);
+      });
+    }
+
+    retry.addEventListener('click', () => run('state', {}, '正在重新检查语言包…'));
+    run('state', {}, '');
+  </script>
+</body>
+</html>
