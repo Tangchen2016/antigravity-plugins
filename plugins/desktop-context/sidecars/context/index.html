@@ -60,6 +60,25 @@
   /* grid: each dot is 1% of the context window */
   .grid { display: grid; grid-template-columns: repeat(20, 1fr); gap: 4px; max-width: 320px; margin-bottom: 4px; }
   .dot { aspect-ratio: 1; border-radius: 50%; background: var(--empty); }
+  .dot[data-segment] { cursor: help; }
+  .dot[data-segment]:hover, .dot:focus-visible { outline: 1px solid var(--fg); outline-offset: 2px; }
+  .dot.is-highlighted { box-shadow: 0 0 0 1px var(--fg); }
+  .row.is-highlighted { background: color-mix(in srgb, var(--fg) 8%, transparent); }
+  .grid-tooltip {
+    position: fixed;
+    z-index: 1;
+    max-width: calc(100vw - 16px);
+    padding: 6px 8px;
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    background: var(--background, #fafafa);
+    color: var(--foreground, #333);
+    box-shadow: 0 2px 8px #0002;
+    font-size: 12px;
+    pointer-events: none;
+  }
+  .grid-tooltip strong, .grid-tooltip span { display: block; }
+  .grid-tooltip span { font-variant-numeric: tabular-nums; }
   .legend { font-size: 11px; color: var(--dim); margin-bottom: 4px; }
 
   /* sections */
@@ -89,12 +108,24 @@
 </head>
 <body>
 <main id="main"><p class="empty">正在读取上下文用量…</p></main>
+<div id="grid-tooltip" class="grid-tooltip" aria-hidden="true" hidden>
+  <strong></strong>
+  <span></span>
+</div>
 
 <script>
 (() => {
   const POLL_MS = 3000;
-  const SEGMENT_COLORS = ['var(--c-system)', 'var(--c-user)', 'var(--c-agent)', 'var(--c-tool)', 'var(--c-custom)'];
-  const CONVERSATION = { user: 'var(--c-user)', agent: 'var(--c-agent)', tool: 'var(--c-tool)', system_messages: 'var(--c-sysmsg)' };
+  const SEGMENT_INFO = {
+    system: ['系统提示、工具与开销', 'var(--c-system)'],
+    user: ['用户消息', 'var(--c-user)'],
+    agent: ['智能体回复', 'var(--c-agent)'],
+    tool: ['工具调用', 'var(--c-tool)'],
+    system_messages: ['系统消息', 'var(--c-sysmsg)'],
+    custom: ['自定义项', 'var(--c-custom)'],
+    free: ['剩余空间', 'var(--empty)'],
+  };
+  const CONVERSATION = new Set(['user', 'agent', 'tool', 'system_messages']);
   const CATEGORY_NAMES = new Map([
     ['user', '用户消息'],
     ['agent', '智能体回复'],
@@ -122,9 +153,15 @@
   const conversationId = (window.sidecar && window.sidecar.conversationId) || params.get('conversationId') || '';
   const doFetch = (window.sidecar && window.sidecar.fetch) || fetch;
   const main = document.getElementById('main');
+  const tooltip = document.getElementById('grid-tooltip');
+  const tooltipName = tooltip.querySelector('strong');
+  const tooltipValue = tooltip.querySelector('span');
+  const integer = new Intl.NumberFormat('zh-CN');
   let workspace = '';
   let report = null;
   let lastJson = '';
+  let gridStats = new Map();
+  let activeDot = null;
 
   const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
@@ -143,35 +180,53 @@
   }
 
   function grid(r) {
-    const counts = gridCells(r.grid_segments, r.limit_tokens, 100);
-    let dots = '';
-    counts.forEach((n, i) => {
-      dots += (i === 5 ? '<span class="dot"></span>' : `<span class="dot" style="background:${SEGMENT_COLORS[i]}"></span>`).repeat(n);
-    });
-    return `<div class="grid" title="每个圆点约占上下文窗口的 1%">${dots}</div>`;
+    const [system, user, agent, tool, custom] = r.grid_segments;
+    const systemMessages = r.categories.find(({ key }) => key === 'system_messages')?.tokens ?? 0;
+    const segments = Object.keys(SEGMENT_INFO);
+    const totals = [system, user, agent, tool, systemMessages, custom, r.free_tokens];
+    const counts = gridCells(totals.slice(0, -1), r.limit_tokens, 100);
+    gridStats = new Map();
+    const cells = segments.map((segment, i) => {
+      const count = counts[i];
+      const [name, color] = SEGMENT_INFO[segment];
+      const tokens = totals[i];
+      const share = r.limit_tokens ? tokens / r.limit_tokens * 100 : 0;
+      const percent = share > 0 && share < .05 ? '少于 0.1%' : `${share.toFixed(1)}%`;
+      const value = `${integer.format(tokens)} token · ${percent}`;
+      gridStats.set(segment, { name, value });
+      if (!count) return '';
+      if (!r.limit_tokens) return '<span class="dot" aria-hidden="true"></span>'.repeat(count);
+
+      const dot = `<span class="dot" data-segment="${segment}" style="background:${color}"`;
+      return `${dot} tabindex="0" role="img" aria-label="${name}，${value}"></span>`
+        + `${dot} aria-hidden="true"></span>`.repeat(count - 1);
+    }).join('');
+    return `<div class="grid" role="group" aria-label="上下文占用图，每个圆点约占 1%">${cells}</div>`;
   }
 
-  function categoryRow(c, limit) {
-    const color = CONVERSATION[c.key] || (SYSTEM.has(c.key) ? 'var(--c-system)' : 'var(--c-custom)');
-    const shape = CONVERSATION[c.key] ? '' : ' sq';
-    return `<div class="row"><span class="mark${shape}" style="background:${color}"></span><span>${esc(CATEGORY_NAMES.get(c.key) || c.name)}</span>`
+  function categoryRow(c) {
+    const isConversation = CONVERSATION.has(c.key);
+    const segment = isConversation ? c.key : SYSTEM.has(c.key) ? 'system' : 'custom';
+    const [label, color] = SEGMENT_INFO[segment];
+    const shape = isConversation ? '' : ' sq';
+    return `<div class="row" data-segment="${segment}"><span class="mark${shape}" style="background:${color}"></span><span>${esc(CATEGORY_NAMES.get(c.key) || c.name || label)}</span>`
       + `<span class="tok num">${fmtTok(c.tokens)}</span><span class="p num">${c.pct.toFixed(1)}%</span></div>`;
   }
 
   function categories(r) {
-    const conv = r.categories.filter((c) => CONVERSATION[c.key]);
-    const rest = r.categories.filter((c) => !CONVERSATION[c.key]);
+    const conv = r.categories.filter((c) => CONVERSATION.has(c.key));
+    const rest = r.categories.filter((c) => !CONVERSATION.has(c.key));
     const limit = r.limit_tokens;
     const freePct = limit ? (r.free_tokens / limit * 100).toFixed(1) : '0.0';
-    const free = `<div class="row"><span class="mark free"></span><span class="dim">剩余空间</span>`
+    const free = `<div class="row" data-segment="free"><span class="mark free"></span><span class="dim">剩余空间</span>`
       + `<span class="tok num">${fmtTok(r.free_tokens)}</span><span class="p num">${freePct}%</span></div>`;
     const estimate = ESTIMATE_NOTES.get(r.heading);
     const note = estimate ? `<p class="note">${estimate}</p>` : '';
     const buffer = r.checkpoint_buffer
       ? `<p class="note">检查点缓冲区 · ${fmtTok(r.checkpoint_buffer)} token（不计入占用）</p>` : '';
     return `<section><h2>Token 用量</h2>${note}
-      <div class="group">${conv.map((c) => categoryRow(c, limit)).join('')}</div>
-      ${rest.length ? `<div class="group">${rest.map((c) => categoryRow(c, limit)).join('')}</div>` : ''}
+      <div class="group">${conv.map(categoryRow).join('')}</div>
+      ${rest.length ? `<div class="group">${rest.map(categoryRow).join('')}</div>` : ''}
       <div class="group">${free}</div>${buffer}</section>`;
   }
 
@@ -204,6 +259,10 @@
   }
 
   function render(r) {
+    const focusedSegment = document.activeElement?.matches('.dot:focus-visible')
+      ? document.activeElement.dataset.segment : null;
+    const hoverRect = activeDot && !focusedSegment ? activeDot.getBoundingClientRect() : null;
+    clearGridHighlight();
     const limit = r.limit_tokens;
     main.innerHTML = `
       <div class="top">
@@ -224,9 +283,16 @@
       ${files('系统文件', '自动加载', r.system_files)}
       <footer><span>相关命令 · /artifact · /skill · /rewind</span><span>更新于 ${esc(new Date(r.updatedAt).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' }))}</span></footer>`;
     document.getElementById('copy').addEventListener('click', copy);
+    if (focusedSegment) {
+      main.querySelector(`.dot[tabindex][data-segment="${focusedSegment}"]`)?.focus({ preventScroll: true });
+    } else if (hoverRect) {
+      const underPointer = document.elementFromPoint(hoverRect.x + hoverRect.width / 2, hoverRect.y + hoverRect.height / 2);
+      if (underPointer?.matches('.dot[data-segment]:hover')) showGridTooltip(underPointer);
+    }
   }
 
   function showMessage(text) {
+    clearGridHighlight();
     report = null;
     lastJson = '';
     main.innerHTML = `<p class="empty">${esc(text)}</p>`;
@@ -286,6 +352,57 @@
       }
     }
   }
+
+  function clearGridHighlight() {
+    if (!activeDot) return;
+    main.querySelectorAll('.is-highlighted').forEach((entry) => entry.classList.remove('is-highlighted'));
+    tooltip.hidden = true;
+    activeDot = null;
+  }
+
+  function showGridTooltip(dot) {
+    const { segment } = dot.dataset;
+    const stats = gridStats.get(segment);
+    if (!stats || dot === activeDot) return;
+
+    clearGridHighlight();
+    activeDot = dot;
+    main.querySelectorAll(`[data-segment="${segment}"]`).forEach((entry) => entry.classList.add('is-highlighted'));
+    tooltipName.textContent = stats.name;
+    tooltipValue.textContent = stats.value;
+    tooltip.hidden = false;
+
+    const anchor = dot.getBoundingClientRect();
+    const box = tooltip.getBoundingClientRect();
+    const chart = dot.parentElement.getBoundingClientRect();
+    const side = chart.right + 8;
+    const besideChart = side + box.width <= innerWidth - 8;
+    const left = besideChart ? side : anchor.left + (anchor.width - box.width) / 2;
+    const above = chart.top - box.height - 8;
+    const top = besideChart ? anchor.top : above >= 8 ? above : chart.bottom + 8;
+    tooltip.style.left = `${Math.max(8, Math.min(left, innerWidth - box.width - 8))}px`;
+    tooltip.style.top = `${Math.max(8, Math.min(top, innerHeight - box.height - 8))}px`;
+  }
+
+  main.addEventListener('pointerover', (event) => {
+    if (event.target.matches('.dot[data-segment]')) showGridTooltip(event.target);
+  });
+  main.addEventListener('pointerout', (event) => {
+    if (event.target !== activeDot || event.relatedTarget?.matches('.dot[data-segment]')) return;
+    if (document.activeElement?.matches('.dot:focus-visible')) showGridTooltip(document.activeElement);
+    else clearGridHighlight();
+  });
+  main.addEventListener('focusin', (event) => {
+    if (event.target.matches('.dot[data-segment]')) showGridTooltip(event.target);
+  });
+  main.addEventListener('focusout', (event) => {
+    if (event.target === activeDot) clearGridHighlight();
+  });
+  document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape') clearGridHighlight();
+  });
+  window.addEventListener('resize', clearGridHighlight);
+  window.addEventListener('scroll', clearGridHighlight, { passive: true });
 
   document.addEventListener('visibilitychange', refresh);
 

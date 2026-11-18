@@ -6,7 +6,7 @@
 
 `plugins/desktop-context/` 收录了上游 [antigravity-desktop-context](https://github.com/dimitr-io/antigravity-desktop-context) 的源码、资源与测试，基于 [`8f7e92b`](https://github.com/dimitr-io/antigravity-desktop-context/tree/8f7e92b007543ec4346337b6f92e7bb5515e3e54)，遵循 [MIT 许可证](plugins/desktop-context/LICENSE)。
 
-面板以中文显示模型名称、上下文占用图、分类用量、检查点和上下文文件，并支持复制原始 CLI 格式的文本报告。百分比以模型的原生上下文窗口为分母。
+面板以中文显示模型名称、上下文占用图、分类用量、检查点和上下文文件，并支持复制原始 CLI 格式的文本报告。将指针移到圆点上，或用 Tab 聚焦，可查看该颜色对应的用量和占比。百分比以模型的原生上下文窗口为分母。
 
 ### 安装
 
