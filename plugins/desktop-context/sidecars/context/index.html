@@ -1,9 +1,9 @@
 <!doctype html>
-<html lang="en">
+<html lang="zh-CN">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Context Usage</title>
+<title>上下文用量</title>
 <script src="/preload.js"></script>
 <style>
   :root {
@@ -88,13 +88,35 @@
 </style>
 </head>
 <body>
-<main id="main"><p class="empty">Loading…</p></main>
+<main id="main"><p class="empty">正在读取上下文用量…</p></main>
 
 <script>
 (() => {
   const POLL_MS = 3000;
   const SEGMENT_COLORS = ['var(--c-system)', 'var(--c-user)', 'var(--c-agent)', 'var(--c-tool)', 'var(--c-custom)'];
   const CONVERSATION = { user: 'var(--c-user)', agent: 'var(--c-agent)', tool: 'var(--c-tool)', system_messages: 'var(--c-sysmsg)' };
+  const CATEGORY_NAMES = new Map([
+    ['user', '用户消息'],
+    ['agent', '智能体回复'],
+    ['tool', '工具调用'],
+    ['system_prompt', '系统提示词'],
+    ['system_tools', '系统工具'],
+    ['system_overhead', '系统开销'],
+    ['rules', '规则'],
+    ['skills', '技能'],
+    ['subagents', '子智能体'],
+    ['legacy_workflows', '旧版工作流'],
+    ['workflows', '工作流'],
+    ['plugins', '插件'],
+    ['mcp_tools', 'MCP 工具'],
+    ['system_messages', '系统消息'],
+  ]);
+  const ESTIMATE_NOTES = new Map([
+    ['Estimated after compaction · updates next turn', '压缩后的估算值，下轮回复后更新'],
+    ['Estimated usage (awaiting generation)', '当前为估算值，等待模型回复'],
+  ]);
+  const READ_ERROR = '暂时无法读取上下文用量，面板会自动重试。';
+  const COPY_LABEL = '复制文本';
   const SYSTEM = new Set(['system_prompt', 'system_tools', 'system_overhead']);
   const params = new URLSearchParams(location.search);
   const conversationId = (window.sidecar && window.sidecar.conversationId) || params.get('conversationId') || '';
@@ -126,13 +148,13 @@
     counts.forEach((n, i) => {
       dots += (i === 5 ? '<span class="dot"></span>' : `<span class="dot" style="background:${SEGMENT_COLORS[i]}"></span>`).repeat(n);
     });
-    return `<div class="grid" title="Each dot is 1% of the context window">${dots}</div>`;
+    return `<div class="grid" title="每个圆点约占上下文窗口的 1%">${dots}</div>`;
   }
 
   function categoryRow(c, limit) {
     const color = CONVERSATION[c.key] || (SYSTEM.has(c.key) ? 'var(--c-system)' : 'var(--c-custom)');
     const shape = CONVERSATION[c.key] ? '' : ' sq';
-    return `<div class="row"><span class="mark${shape}" style="background:${color}"></span><span>${esc(c.name)}</span>`
+    return `<div class="row"><span class="mark${shape}" style="background:${color}"></span><span>${esc(CATEGORY_NAMES.get(c.key) || c.name)}</span>`
       + `<span class="tok num">${fmtTok(c.tokens)}</span><span class="p num">${c.pct.toFixed(1)}%</span></div>`;
   }
 
@@ -141,12 +163,13 @@
     const rest = r.categories.filter((c) => !CONVERSATION[c.key]);
     const limit = r.limit_tokens;
     const freePct = limit ? (r.free_tokens / limit * 100).toFixed(1) : '0.0';
-    const free = `<div class="row"><span class="mark free"></span><span class="dim">Free space</span>`
+    const free = `<div class="row"><span class="mark free"></span><span class="dim">剩余空间</span>`
       + `<span class="tok num">${fmtTok(r.free_tokens)}</span><span class="p num">${freePct}%</span></div>`;
-    const note = r.heading === 'Token usage by category' ? '' : `<p class="note">${esc(r.heading)}</p>`;
+    const estimate = ESTIMATE_NOTES.get(r.heading);
+    const note = estimate ? `<p class="note">${estimate}</p>` : '';
     const buffer = r.checkpoint_buffer
-      ? `<p class="note">Checkpoint buffer: ${fmtTok(r.checkpoint_buffer)} tokens (not counted in usage)</p>` : '';
-    return `<section><h2>Token usage</h2>${note}
+      ? `<p class="note">检查点缓冲区 · ${fmtTok(r.checkpoint_buffer)} token（不计入占用）</p>` : '';
+    return `<section><h2>Token 用量</h2>${note}
       <div class="group">${conv.map((c) => categoryRow(c, limit)).join('')}</div>
       ${rest.length ? `<div class="group">${rest.map((c) => categoryRow(c, limit)).join('')}</div>` : ''}
       <div class="group">${free}</div>${buffer}</section>`;
@@ -155,9 +178,10 @@
   function checkpoints(r) {
     const ck = r.checkpoint_view;
     if (!ck) return '';
-    const older = ck.historical ? `<div class="dim" style="font-size:12px">${ck.historical} older checkpoint(s) summarized, not in context</div>` : '';
-    return `<section><h2>Checkpoints <span class="hint">${ck.count} · /rewind</span></h2>
-      <div class="ck-main"><span>Checkpoint ${ck.active_number}: ${esc(ck.active_text)}</span><span class="badge">in context</span></div>${older}</section>`;
+    const older = ck.historical ? `<div class="dim" style="font-size:12px">已有 ${ck.historical} 个历史检查点被摘要，未计入当前上下文</div>` : '';
+    const detail = ck.active_text.replace(/^steps (\d+)–(\d+)$/, '步骤 $1–$2');
+    return `<section><h2>检查点 <span class="hint">${ck.count} · /rewind</span></h2>
+      <div class="ck-main"><span>检查点 ${ck.active_number} · ${esc(detail)}</span><span class="badge">当前上下文</span></div>${older}</section>`;
   }
 
   function splitPath(path) {
@@ -165,7 +189,7 @@
     const i = trimmed.lastIndexOf('/');
     const name = trimmed.slice(i + 1) + (path.endsWith('/') ? '/' : '');
     let dir = i > 0 ? trimmed.slice(0, i) : '';
-    if (conversationId) dir = dir.replace(new RegExp(`^.*/brain/${conversationId}`), 'conversation folder');
+    if (conversationId) dir = dir.replace(new RegExp(`^.*/brain/${conversationId}`), '会话目录');
     return { name, dir };
   }
 
@@ -183,22 +207,22 @@
     const limit = r.limit_tokens;
     main.innerHTML = `
       <div class="top">
-        <div class="model"><span class="live on" title="Live"></span>${esc(r.model)}</div>
-        <button id="copy" title="Copy the report as the CLI prints it">Copy as text</button>
+        <div class="model"><span class="live on" title="自动刷新"></span>${esc(r.model === 'Unknown Model' ? '未知模型' : r.model)}</div>
+        <button id="copy" title="复制 CLI 格式的文本报告">${COPY_LABEL}</button>
       </div>
       <div class="usage">
         <span class="big num">${fmtTok(r.used_tokens)}</span>
-        <span class="of">/ ${limit ? fmtTok(limit) : 'Unknown'} tokens</span>
+        <span class="of">/ ${limit ? fmtTok(limit) : '未知'} token</span>
         ${limit ? `<span class="pct num">${r.used_pct.toFixed(1)}%</span>` : ''}
       </div>
       ${grid(r)}
       ${categories(r)}
       ${checkpoints(r)}
-      ${files('Knowledge files', '/rules', r.knowledge_files)}
-      ${files('Artifact files', '/artifact', r.artifact_files)}
-      ${files('Skill files', '/skill', r.skill_files)}
-      ${files('System files', 'auto-loaded', r.system_files)}
-      <footer><span>Related: /artifact · /skill · /rewind</span><span>Updated ${esc(new Date(r.updatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }))}</span></footer>`;
+      ${files('知识文件', '/rules', r.knowledge_files)}
+      ${files('产物文件', '/artifact', r.artifact_files)}
+      ${files('技能文件', '/skill', r.skill_files)}
+      ${files('系统文件', '自动加载', r.system_files)}
+      <footer><span>相关命令 · /artifact · /skill · /rewind</span><span>更新于 ${esc(new Date(r.updatedAt).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' }))}</span></footer>`;
     document.getElementById('copy').addEventListener('click', copy);
   }
 
@@ -210,6 +234,8 @@
 
   async function copy(event) {
     if (!report) return;
+    const btn = event.currentTarget;
+    let copied = true;
     try {
       await navigator.clipboard.writeText(report.text);
     } catch {
@@ -217,12 +243,16 @@
       ta.value = report.text;
       document.body.appendChild(ta);
       ta.select();
-      document.execCommand('copy');
-      ta.remove();
+      try {
+        copied = document.execCommand('copy');
+      } catch {
+        copied = false;
+      } finally {
+        ta.remove();
+      }
     }
-    const btn = event.currentTarget;
-    btn.textContent = 'Copied';
-    setTimeout(() => { btn.textContent = 'Copy as text'; }, 1500);
+    btn.textContent = copied ? '已复制' : '复制失败';
+    setTimeout(() => { btn.textContent = COPY_LABEL; }, 1500);
   }
 
   async function refresh() {
@@ -231,17 +261,29 @@
       const qs = new URLSearchParams({ conversationId, workspace });
       const res = await doFetch(`/api/report?${qs}`);
       const data = await res.json();
-      if (data.error === 'no-conversation') return showMessage('Open a conversation to see its context usage.');
-      if (data.error === 'no-database') return showMessage('This conversation has no saved data yet. Send a message first.');
-      if (data.error) return showMessage(`Couldn't read this conversation: ${data.message || data.error}`);
+      if (data.error === 'no-conversation') return showMessage('打开一个会话后即可查看上下文用量。');
+      if (data.error === 'no-database') return showMessage('这个会话还没有保存的用量数据，发送一条消息后再查看。');
+      if (data.error) return showMessage(READ_ERROR);
       const json = JSON.stringify(data);
-      if (json === lastJson) return;
+      if (json === lastJson) {
+        const dot = document.querySelector('.live');
+        if (dot) {
+          dot.classList.add('on');
+          dot.title = '自动刷新';
+        }
+        return;
+      }
       lastJson = json;
       report = data;
       render(data);
     } catch {
       const dot = document.querySelector('.live');
-      if (dot) dot.classList.remove('on');
+      if (dot) {
+        dot.classList.remove('on');
+        dot.title = '刷新失败，显示上次读取的用量';
+      } else {
+        showMessage(READ_ERROR);
+      }
     }
   }
 

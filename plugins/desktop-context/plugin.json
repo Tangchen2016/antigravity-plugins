@@ -1,7 +1,7 @@
 {
   "name": "desktop-context",
-  "title": "Context Usage",
-  "description": "The agy CLI's /context report as a live side panel: exact token usage by category, checkpoints and files in context. Zero tokens per refresh.",
-  "version": "1.0.0",
+  "title": "上下文用量",
+  "description": "在侧面板查看当前会话的上下文占用、分类用量、检查点和上下文文件。",
+  "version": "1.0.1",
   "logo": "assets/logo.svg"
 }
