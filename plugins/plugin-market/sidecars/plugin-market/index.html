@@ -149,6 +149,8 @@
   <div class="header">
     <h1>插件市场</h1>
     <div class="header-actions">
+      <button id="self-update" class="btn warn" type="button" hidden>更新市场</button>
+      <button id="update-all" class="btn warn" type="button" hidden>全部更新</button>
       <button id="refresh" class="btn ghost" type="button">刷新</button>
     </div>
   </div>
@@ -187,6 +189,8 @@
   const feedbackEl = document.getElementById('feedback');
   const searchEl = document.getElementById('search');
   const refreshBtn = document.getElementById('refresh');
+  const updateAllBtn = document.getElementById('update-all');
+  const selfUpdateBtn = document.getElementById('self-update');
   const cntInstalled = document.getElementById('cnt-installed');
   const cntMarket = document.getElementById('cnt-market');
   const sourceListEl = document.getElementById('source-list');
@@ -246,17 +250,15 @@
       const statusPill = p.enabled
         ? '<span class="pill ok">已启用</span>'
         : '<span class="pill">已停用</span>';
-      const updateBtn = p.hasUpdate
-        ? `<button class="btn warn" data-act="install" data-name="${esc(p.name)}" data-repo="${esc(p.repo)}" data-branch="${esc(p.branch)}" data-path="${esc(p.remotePath)}" ${busy ? 'disabled' : ''}>更新至 v${esc(p.remoteVersion)}</button>`
+      const updateBtn = p.repo
+        ? (p.hasUpdate
+            ? `<button class="btn warn" data-act="install" data-name="${esc(p.name)}" data-repo="${esc(p.repo)}" data-branch="${esc(p.branch)}" data-path="${esc(p.remotePath)}" ${busy ? 'disabled' : ''}>更新至 v${esc(p.remoteVersion)}</button>`
+            : `<button class="btn ghost" data-act="install" data-name="${esc(p.name)}" data-repo="${esc(p.repo)}" data-branch="${esc(p.branch)}" data-path="${esc(p.remotePath)}" ${busy ? 'disabled' : ''}>更新</button>`)
         : '';
-      const toggleBtn = p.isSelf
-        ? '<span class="meta">当前插件</span>'
-        : (p.enabled
-            ? `<button class="btn ghost" data-act="disable" data-name="${esc(p.name)}" ${busy ? 'disabled' : ''}>停用</button>`
-            : `<button class="btn primary" data-act="enable" data-name="${esc(p.name)}" ${busy ? 'disabled' : ''}>启用</button>`);
-      const uninstallBtn = p.isSelf
-        ? ''
-        : `<button class="btn danger" data-act="uninstall" data-name="${esc(p.name)}" ${busy ? 'disabled' : ''}>卸载</button>`;
+      const toggleBtn = p.enabled
+        ? `<button class="btn ghost" data-act="disable" data-name="${esc(p.name)}" ${busy ? 'disabled' : ''}>停用</button>`
+        : `<button class="btn primary" data-act="enable" data-name="${esc(p.name)}" ${busy ? 'disabled' : ''}>启用</button>`;
+      const uninstallBtn = `<button class="btn danger" data-act="uninstall" data-name="${esc(p.name)}" ${busy ? 'disabled' : ''}>卸载</button>`;
       return `<article class="card${p.enabled ? '' : ' disabled'}">
         <div class="card-top">
           <div class="title-row">
@@ -316,7 +318,14 @@
 
   function render() {
     refreshBtn.disabled = busy;
+    updateAllBtn.disabled = busy;
+    selfUpdateBtn.disabled = busy;
     if (!state) return;
+    updateAllBtn.hidden = !state.updateCount;
+    updateAllBtn.textContent = `全部更新 (${state.updateCount})`;
+    selfUpdateBtn.hidden = !state.selfUpdate;
+    if (state.selfUpdate) selfUpdateBtn.textContent = `更新市场 v${state.selfUpdate.remoteVersion}`;
+
     cntInstalled.textContent = String(state.installed.length);
     cntMarket.textContent = state.updateCount > 0 ? `${state.market.length} · ${state.updateCount}可更` : String(state.market.length);
     cntMarket.classList.toggle('warn', state.updateCount > 0);
@@ -336,6 +345,12 @@
 
   searchEl.addEventListener('input', () => { query = searchEl.value.trim(); render(); });
   refreshBtn.addEventListener('click', () => run('state', { force: true }, '正在刷新插件列表与远端目录…', '列表已刷新。'));
+  updateAllBtn.addEventListener('click', () => run('update-all', {}, '正在更新全部有新版本的插件…', '全部插件已更新到最新版本。'));
+  selfUpdateBtn.addEventListener('click', () => {
+    if (!state?.selfUpdate) return;
+    const s = state.selfUpdate;
+    run('install', { name: s.name, repo: s.repo, branch: s.branch, path: s.path }, '正在更新插件市场…', '插件市场已更新，关闭再重新启用插件市场即可生效。');
+  });
 
   document.body.addEventListener('click', (e) => {
     const btn = e.target.closest('button[data-act]');

@@ -229,36 +229,57 @@ export function createMarketManager({
     const installedMap = new Map(installed.map((p) => [p.name, p]));
     const catalogMap = new Map(catalog.items.map((p) => [p.name, p]));
 
-    const market = catalog.items.map((item) => {
-      const local = installedMap.get(item.name);
-      const hasUpdate = Boolean(local && compareVersions(item.version, local.version) > 0);
-      return {
-        ...item,
-        installed: Boolean(local),
-        installedVersion: local?.version || null,
-        enabled: local ? local.enabled : false,
-        hasUpdate,
-        isSelf: item.name === SELF_PLUGIN,
-      };
-    });
+    const selfLocal = installedMap.get(SELF_PLUGIN);
+    const selfRemote = catalogMap.get(SELF_PLUGIN);
+    const selfUpdate = selfLocal && selfRemote && compareVersions(selfRemote.version, selfLocal.version) > 0
+      ? {
+          name: SELF_PLUGIN,
+          localVersion: selfLocal.version,
+          remoteVersion: selfRemote.version,
+          repo: selfRemote.repo,
+          branch: selfRemote.branch,
+          path: selfRemote.path,
+        }
+      : null;
 
-    const localList = installed.map((item) => {
-      const remote = catalogMap.get(item.name);
-      const hasUpdate = Boolean(remote && compareVersions(remote.version, item.version) > 0);
-      return {
-        ...item,
-        remoteVersion: remote?.version || null,
-        hasUpdate,
-        repo: remote?.repo || null,
-        branch: remote?.branch || null,
-        remotePath: remote?.path || null,
-      };
-    });
+    const market = catalog.items
+      .filter((item) => item.name !== SELF_PLUGIN)
+      .map((item) => {
+        const local = installedMap.get(item.name);
+        const hasUpdate = Boolean(local && compareVersions(item.version, local.version) > 0);
+        return {
+          ...item,
+          installed: Boolean(local),
+          installedVersion: local?.version || null,
+          enabled: local ? local.enabled : false,
+          hasUpdate,
+        };
+      });
+
+    const localList = installed
+      .filter((item) => item.name !== SELF_PLUGIN)
+      .map((item) => {
+        const remote = catalogMap.get(item.name);
+        const hasUpdate = Boolean(remote && compareVersions(remote.version, item.version) > 0);
+        const displayName = item.displayName && item.displayName !== item.name
+          ? item.displayName
+          : (remote?.displayName || item.displayName || item.name);
+        return {
+          ...item,
+          displayName,
+          remoteVersion: remote?.version || null,
+          hasUpdate,
+          repo: remote?.repo || null,
+          branch: remote?.branch || null,
+          remotePath: remote?.path || null,
+        };
+      });
 
     return {
       sources: loadSources(),
       installed: localList,
       market,
+      selfUpdate,
       errors: catalog.errors,
       fetchedAt: catalog.fetchedAt,
       updateCount: market.filter((m) => m.hasUpdate).length,
@@ -336,9 +357,22 @@ export function createMarketManager({
     return state({ force: true });
   }
 
+  async function updateAll() {
+    const current = await state({ force: true });
+    const targets = current.installed.filter((p) => p.repo && p.hasUpdate);
+    if (!targets.length) {
+      return current;
+    }
+    for (const p of targets) {
+      await installPlugin({ name: p.name, repo: p.repo, branch: p.branch || 'main', path: p.remotePath });
+    }
+    return state({ force: false });
+  }
+
   return {
     state,
     installPlugin,
+    updateAll,
     togglePlugin,
     uninstallPlugin,
     addSource,

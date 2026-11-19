@@ -16,6 +16,7 @@ app.page('/', () => new Response(readFileSync(page, 'utf8'), { contentType: 'tex
 const actions = {
   state: ({ force = false } = {}) => manager.state({ force }),
   install: (req) => manager.installPlugin(req),
+  'update-all': () => manager.updateAll(),
   enable: ({ name }) => manager.togglePlugin(name, true),
   disable: ({ name }) => manager.togglePlugin(name, false),
   uninstall: ({ name }) => manager.uninstallPlugin(name),
