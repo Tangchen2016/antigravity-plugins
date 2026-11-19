@@ -1,6 +1,4 @@
 import { readFileSync } from 'node:fs';
-import { homedir } from 'node:os';
-import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { Response, SidecarApp } from 'sidecar_sdk';
 import { createPackManager, PackError } from './packs.mjs';
@@ -11,7 +9,7 @@ if (!dataDirectory || !process.env.ANTIGRAVITY_SIDECAR_UI_TOKEN) {
 }
 
 const directory = process.env.ANTIGRAVITY_HOT_DICTIONARY_DIR
-  || join(homedir(), 'Mine', 'antigravity2-cn', 'dicts');
+  || fileURLToPath(new URL('../../runtime/dicts/', import.meta.url));
 const manager = createPackManager({
   directory,
   dataDirectory,

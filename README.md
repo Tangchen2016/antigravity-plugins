@@ -77,7 +77,7 @@ curl -fsSL https://raw.githubusercontent.com/Tangchen2016/antigravity-plugins/ma
 
 ## 语言包管理
 
-`plugins/language-packs/` 是与「上下文用量」独立的侧边栏扩展，内置简体和繁体词库，从本机 `antigravity2-cn` 的词库整理而来。
+`plugins/language-packs/` 是自包含的 Antigravity 中文汉化与语言包管理扩展，内置简体/繁体完整词库（4,903 条）以及主窗口热更新汉化运行时，无需额外依赖外部仓库。
 
 <p>
   <img src="docs/images/language-packs.png" alt="语言包管理面板效果图" width="460" />
@@ -85,15 +85,28 @@ curl -fsSL https://raw.githubusercontent.com/Tangchen2016/antigravity-plugins/ma
 
 ### 安装语言包管理
 
+**第 1 步：安装扩展**
+
 ```bash
 curl -fsSL https://raw.githubusercontent.com/Tangchen2016/antigravity-plugins/main/install.sh | bash -s -- language-packs
 ```
 
+**第 2 步：一键启用主窗口汉化运行时**（首次安装或 Antigravity App 更新后执行一次，需管理员权限）
+
+```bash
+bash ~/.gemini/config/plugins/language-packs/runtime/install-runtime.sh
+```
+
+> 如需还原为官方英文主窗口，执行：
+> ```bash
+> bash ~/.gemini/config/plugins/language-packs/runtime/uninstall-runtime.sh
+> ```
+
 ### 使用说明
-- 在会话中打开 **概览 → 扩展 → 语言包管理**，每次可启用一种语言包。
-- 点击 **更新词库** 可导入自定义 JSON（格式为 `{"英文原文":"译文"}`），启用中的语言包更新后会立即写入热更新目录，主窗口通常在约 3 秒内刷新；停用后恢复基础词库。
-- 依赖已安装的 `antigravity2-cn` 词库热更新运行时（默认目录 `~/Mine/antigravity2-cn/dicts`）；如目录不同，可在扩展的 `sidecar.json` 中通过 `env.ANTIGRAVITY_HOT_DICTIONARY_DIR` 指定绝对路径。
-- 停用或移除扩展前，请先在管理面板停用当前语言包。语言包写成独立词库文件，不会覆盖基础词库。
+- 安装并重启 Antigravity 后，在会话右侧打开 **概览 → 扩展 → 语言包管理** 即可实时切换简体中文 / 繁體中文。
+- 点击 **更新词库** 可导入自定义 JSON（格式为 `{"英文原文":"译文"}`），启用中的语言包更新后会立即写入热更新目录，主窗口通常在约 3 秒内刷新。
+- 点击单语言包的 **还原内置** 可撤销本地导入词库，点击顶部 **还原默认** 可一键停用覆盖并还原全部内置词库。
+- 词库默认读取插件内置的 `runtime/dicts/`；如需自定义目录，可在 `sidecar.json` 中通过 `env.ANTIGRAVITY_HOT_DICTIONARY_DIR` 指定绝对路径。
 
 ---
 
