@@ -358,6 +358,17 @@
   }
   .files li:hover { background: var(--surface-hover); }
   .files .name { font-size: 12.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .files .name-row { display: inline-flex; align-items: center; gap: 6px; max-width: 100%; }
+  .files .loaded-tag {
+    font-size: 10px; font-weight: 500;
+    color: var(--c-ok);
+    background: color-mix(in srgb, var(--c-ok) 12%, transparent);
+    border: 1px solid color-mix(in srgb, var(--c-ok) 34%, transparent);
+    border-radius: 999px;
+    padding: 0 5px;
+    line-height: 1.45;
+    flex: none;
+  }
   .files .dir {
     display: block; font-size: 11px; color: var(--dim);
     overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
@@ -601,6 +612,26 @@
     </details>`;
   }
 
+  function skillsSection(r) {
+    const items = Array.isArray(r.skills) && r.skills.length ? r.skills : null;
+    if (!items) return files('skill', '技能文件', '/skill', r.skill_files);
+    const loadedCount = items.filter((s) => s.loaded).length;
+    const isOpen = openGroups.has('skill') ? openGroups.get('skill') : items.length <= 6;
+    const totalTok = items.reduce((sum, s) => sum + (s.tokens > 0 ? s.tokens : 0), 0);
+    const countText = loadedCount > 0 ? `${loadedCount}/${items.length}` : String(items.length);
+    const sumRight = totalTok > 0 ? `${fmtTok(totalTok)} · /skill` : '/skill';
+    const rows = items.map((s) => {
+      const tag = s.loaded ? '<span class="loaded-tag">已加载</span>' : '';
+      const meta = [s.source, s.path].filter(Boolean).join(' · ');
+      return `<li title="${esc(s.path || s.name)}"><span class="name"><span class="name-row"><span>${esc(s.name)}</span>${tag}</span><span class="dir">${esc(meta)}</span></span>`
+        + `<span class="tok num">${s.tokens > 0 ? fmtTok(s.tokens) : ''}</span></li>`;
+    }).join('');
+    return `<details class="file-group" data-group="skill"${isOpen ? ' open' : ''}>
+      <summary><span class="sum-left">${CHEV_ICON}<span>技能</span><span class="count-pill num">${countText}</span></span><span class="sum-right num">${sumRight}</span></summary>
+      <ul class="files">${rows}</ul>
+    </details>`;
+  }
+
   function mcpServers(items) {
     if (!items || !items.length) return '';
     const isOpen = openGroups.has('mcp') ? openGroups.get('mcp') : items.length <= 6;
@@ -661,7 +692,7 @@
       ${checkpoints(r)}
       ${files('knowledge', '知识文件', '/rules', r.knowledge_files)}
       ${files('artifact', '产物文件', '/artifact', r.artifact_files)}
-      ${files('skill', '技能文件', '/skill', r.skill_files)}
+      ${skillsSection(r)}
       ${mcpServers(r.mcp_servers)}
       ${files('system', '系统文件', '自动加载', r.system_files)}
       <footer><span>/artifact · /skill · /rewind</span><span class="num">更新于 ${esc(new Date(r.updatedAt).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' }))}</span></footer>`;

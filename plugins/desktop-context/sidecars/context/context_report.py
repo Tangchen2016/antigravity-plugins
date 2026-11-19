@@ -401,14 +401,14 @@ def _read_mcp_config(path: str, source: str) -> list[dict]:
     if not isinstance(servers, dict):
         return items
     for name, cfg in servers.items():
-        if not isinstance(cfg, dict) or cfg.get("disabled") is True:
+        if not isinstance(cfg, dict) or cfg.get("disabled") is True or cfg.get("enabled") is False:
             continue
-        transport = "HTTP" if (cfg.get("url") or cfg.get("serverUrl")) else "Stdio"
+        transport = "HTTP" if (cfg.get("url") or cfg.get("serverUrl") or cfg.get("httpUrl")) else "Stdio"
         items.append({"name": name, "source": source, "transport": transport, "tokens": 0})
     return items
 
 
-def detect_mcp_servers(home: str, workspace: str | None, mcp_tool_items: list[tuple[str, int]]) -> list[dict]:
+def detect_mcp_servers(home: str, workspace: str | None, mcp_tool_items: list[tuple[str, int]], app_dir: str = "antigravity") -> list[dict]:
     """Collect enabled MCP servers from global/workspace/plugin configs and merge session MCP token items."""
     disabled_plugins = _load_disabled_plugins(home)
     servers: dict[str, dict] = {}
@@ -418,10 +418,15 @@ def detect_mcp_servers(home: str, workspace: str | None, mcp_tool_items: list[tu
             servers.setdefault(entry["name"], entry)
 
     add_all(_read_mcp_config(os.path.join(home, ".gemini", "config", "mcp_config.json"), "全局配置"))
+    if app_dir:
+        add_all(_read_mcp_config(os.path.join(home, ".gemini", app_dir, "mcp_config.json"), "全局配置"))
+    add_all(_read_mcp_config(os.path.join(home, ".gemini", "settings.json"), "全局配置"))
 
     plugin_roots = [os.path.join(home, ".gemini", "config", "plugins")]
     if workspace:
         ws = os.path.abspath(workspace)
+        add_all(_read_mcp_config(os.path.join(ws, ".mcp.json"), "工作区"))
+        add_all(_read_mcp_config(os.path.join(ws, ".gemini", "settings.json"), "工作区"))
         for dot in (".agents", ".agent"):
             add_all(_read_mcp_config(os.path.join(ws, dot, "mcp_config.json"), "工作区"))
             plugin_roots.append(os.path.join(ws, dot, "plugins"))
@@ -463,6 +468,171 @@ def detect_mcp_servers(home: str, workspace: str | None, mcp_tool_items: list[tu
             entry["tokens"] += tok
 
     return sorted(servers.values(), key=lambda x: (-x["tokens"], x["name"]))
+
+
+def _skill_frontmatter_name(skill_md: Path, fallback: str) -> str:
+    try:
+        with open(skill_md, encoding="utf-8", errors="replace") as fh:
+            lines = [fh.readline() for _ in range(20)]
+    except OSError:
+        return fallback
+    if not lines or lines[0].strip() != "---":
+        return fallback
+    for line in lines[1:]:
+        if line.strip() == "---":
+            break
+        m = re.match(r"^\s*name\s*:\s*['\"]?([^'\"#\n]+?)['\"]?\s*$", line)
+        if m and m.group(1).strip():
+            return m.group(1).strip()
+    return fallback
+
+
+def _expand_home(raw: str, home: str) -> str:
+    if raw == "~":
+        return home
+    if raw.startswith("~/") or raw.startswith("~\\"):
+        return os.path.join(home, raw[2:])
+    return raw
+
+
+def detect_skills(home: str, workspace: str | None, app_dir: str, loaded_skill_files: list[tuple[str, int]]) -> list[dict]:
+    """Collect all registered skills from workspace/user/config/plugin/builtin roots and mark loaded ones."""
+    loaded_by_path: dict[str, int] = {}
+    for p, tok in loaded_skill_files:
+        norm = p.replace("\\", "/")
+        loaded_by_path[norm] = loaded_by_path.get(norm, 0) + tok
+
+    roots: list[tuple[str, str, list[str]]] = []
+    if workspace:
+        ws = os.path.abspath(workspace)
+        for dot in (".agents", ".agent", "_agents"):
+            roots.append((os.path.join(ws, dot, "skills"), "工作区", []))
+
+    skills_cfg = os.path.join(home, ".gemini", "config", "skills.json")
+    try:
+        with open(skills_cfg, encoding="utf-8") as fh:
+            entries = (json.load(fh) or {}).get("entries") or []
+        for entry in entries:
+            if isinstance(entry, dict) and isinstance(entry.get("path"), str):
+                excl = [x for x in (entry.get("exclude") or []) if isinstance(x, str)]
+                roots.append((_expand_home(entry["path"], home), "用户配置", excl))
+    except (OSError, ValueError):
+        pass
+
+    roots.append((os.path.join(home, ".gemini", "skills"), "用户全局", []))
+    if app_dir:
+        roots.append((os.path.join(home, ".gemini", app_dir, "skills"), "用户全局", []))
+
+    disabled_plugins = _load_disabled_plugins(home)
+    plugin_roots = [os.path.join(home, ".gemini", "config", "plugins")]
+    if workspace:
+        ws = os.path.abspath(workspace)
+        for dot in (".agents", ".agent"):
+            plugin_roots.append(os.path.join(ws, dot, "plugins"))
+    for proot in plugin_roots:
+        if not os.path.isdir(proot):
+            continue
+        try:
+            pnames = sorted(os.listdir(proot))
+        except OSError:
+            continue
+        for pdir in pnames:
+            if pdir in disabled_plugins or pdir.startswith("."):
+                continue
+            pfull = os.path.join(proot, pdir)
+            sdir = os.path.join(pfull, "skills")
+            if not os.path.isdir(sdir):
+                continue
+            pjson = os.path.join(pfull, "plugin.json")
+            if os.path.isfile(pjson):
+                try:
+                    with open(pjson, encoding="utf-8") as fh:
+                        if json.load(fh).get("disabled") is True:
+                            continue
+                except (OSError, ValueError):
+                    pass
+            roots.append((sdir, f"插件 · {pdir}", []))
+
+    if app_dir:
+        roots.append((os.path.join(home, ".gemini", app_dir, "builtin", "skills"), "内置", []))
+
+    seen_real: set[str] = set()
+    seen_names: set[str] = set()
+    matched_loaded: set[str] = set()
+    items: list[dict] = []
+
+    for root_dir, source, excludes in roots:
+        if not os.path.isdir(root_dir):
+            continue
+        patterns = []
+        for ex in excludes:
+            try:
+                patterns.append(re.compile(ex))
+            except re.error:
+                pass
+        try:
+            children = sorted(os.listdir(root_dir))
+        except OSError:
+            continue
+        for child in children:
+            if child.startswith(".") or any(p.search(child) for p in patterns):
+                continue
+            cdir = os.path.join(root_dir, child)
+            if not os.path.isdir(cdir):
+                continue
+            skill_md = Path(cdir) / "SKILL.md"
+            if not skill_md.is_file():
+                continue
+            real = os.path.realpath(skill_md)
+            if real in seen_real:
+                continue
+            seen_real.add(real)
+            name = _skill_frontmatter_name(skill_md, child)
+            if name in seen_names:
+                continue
+            seen_names.add(name)
+            short = shorten_path(str(skill_md))
+            norm_short = short.replace("\\", "/")
+            loaded = norm_short in loaded_by_path
+            tok = loaded_by_path.get(norm_short, 0)
+            if loaded:
+                matched_loaded.add(norm_short)
+            items.append({
+                "name": name,
+                "source": source,
+                "path": short,
+                "loaded": loaded,
+                "tokens": tok,
+            })
+
+    for norm_path, tok in loaded_by_path.items():
+        if norm_path in matched_loaded:
+            continue
+        parts = [p for p in norm_path.split("/") if p]
+        fallback = parts[-2] if len(parts) >= 2 and parts[-1] == "SKILL.md" else (parts[-1] if parts else norm_path)
+        items.append({
+            "name": fallback,
+            "source": "当前会话",
+            "path": norm_path,
+            "loaded": True,
+            "tokens": tok,
+        })
+
+    def src_rank(src: str) -> int:
+        if src == "当前会话":
+            return 0
+        if src == "工作区":
+            return 1
+        if src == "用户配置":
+            return 2
+        if src == "用户全局":
+            return 3
+        if src.startswith("插件"):
+            return 4
+        return 5
+
+    items.sort(key=lambda x: (0 if x["loaded"] else 1, -x["tokens"], src_rank(x["source"]), x["name"].lower()))
+    return items
 
 
 def collect_stats(steps: list[Step], gen: Msg | None, limit: int) -> dict:
@@ -556,7 +726,8 @@ def collect_stats(steps: list[Step], gen: Msg | None, limit: int) -> dict:
             elif gtype == TOKEN_MCP_TOOLS:
                 st["mcp_tools"] += gtok
                 for item in g.msgs(5):
-                    iname, itok = item.str(1), item.int(2)
+                    iname = item.str(1)
+                    itok = item.int(3, signed32=True) or item.int(2)
                     if iname:
                         mcp_tool_items.append((iname, itok))
             elif gtype == TOKEN_SKILLS:
@@ -962,8 +1133,10 @@ def main():
     st = collect_stats(steps, gen, limit)
     session_usage = collect_session_usage(gens, catalog)
     model = catalog_entry.get("displayName") or model_name(gen)
-    system_files = detect_system_files(os.path.expanduser("~"), args.workspace, args.app_dir)
-    mcp_servers = detect_mcp_servers(os.path.expanduser("~"), args.workspace, st["mcp_tool_items"])
+    home_dir = os.path.expanduser("~")
+    system_files = detect_system_files(home_dir, args.workspace, args.app_dir)
+    mcp_servers = detect_mcp_servers(home_dir, args.workspace, st["mcp_tool_items"], args.app_dir)
+    skills = detect_skills(home_dir, args.workspace, args.app_dir, st["skill_files"])
 
     if args.json:
         print(json.dumps({
@@ -993,6 +1166,7 @@ def main():
             "knowledge_files": [{"path": p, "tokens": t} for p, t in st["knowledge_files"]],
             "artifact_files": [{"path": p, "tokens": t} for p, t in st["artifact_files"]],
             "skill_files": [{"path": p, "tokens": t} for p, t in st["skill_files"]],
+            "skills": skills,
             "system_files": [{"path": p} for p, _ in system_files],
             "mcp_servers": mcp_servers,
         }, indent=2))

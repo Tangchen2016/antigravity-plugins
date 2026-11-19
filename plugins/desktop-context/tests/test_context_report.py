@@ -354,6 +354,45 @@ class ReportTest(unittest.TestCase):
         self.assertEqual(m1["model"], "Gemini 4 Carbon (Medium)")
         self.assertEqual((m1["turns"], m1["total_tokens"], m1["cache_hit_pct"]), (1, 1100, 50.0))
 
+    def test_detects_skills_and_settings_mcp(self):
+        # User global skill, skills.json custom root with exclude, and builtin skill.
+        (self.home / ".gemini" / "skills" / "alpha").mkdir(parents=True)
+        (self.home / ".gemini" / "skills" / "alpha" / "SKILL.md").write_text("---\nname: alpha-skill\n---\n")
+        (self.home / ".agents" / "skills" / "beta").mkdir(parents=True)
+        (self.home / ".agents" / "skills" / "beta" / "SKILL.md").write_text("---\nname: beta\n---\n")
+        (self.home / ".agents" / "skills" / ".claude").mkdir(parents=True)
+        (self.home / ".agents" / "skills" / ".claude" / "SKILL.md").write_text("---\nname: hidden\n---\n")
+        (self.home / ".gemini" / "config").mkdir(parents=True)
+        (self.home / ".gemini" / "config" / "skills.json").write_text(
+            json.dumps({"entries": [{"path": "~/.agents/skills", "exclude": [r"^\.claude$"]}]})
+        )
+        (self.home / ".gemini" / "antigravity" / "builtin" / "skills" / "gamma").mkdir(parents=True)
+        (self.home / ".gemini" / "antigravity" / "builtin" / "skills" / "gamma" / "SKILL.md").write_text("---\nname: gamma\n---\n")
+        # MCP server configured in ~/.gemini/settings.json.
+        (self.home / ".gemini" / "settings.json").write_text(
+            json.dumps({"mcpServers": {"pencil": {"command": "/usr/local/bin/pencil-mcp"}}})
+        )
+        # Mark alpha as loaded in this session and give pencil MCP tool tokens in breakdown field 3.
+        home_uri = "file:///" + str(self.home).replace("\\", "/").lstrip("/")
+        self.db.step(VIEW_FILE, metadata=tool_call("v" * 40), payload_field=P_VIEW_FILE,
+                     payload=m(f(1, home_uri + "/.gemini/skills/alpha/SKILL.md"), f(17, 1)))
+        self.db.generation([group(4, 250, ("pencil:draw", 250)), group(7, 100, ("0: USER_INPUT", 100))])
+        r = self.report()
+        by_skill = {s["name"]: s for s in r["skills"]}
+        self.assertIn("alpha-skill", by_skill)
+        self.assertTrue(by_skill["alpha-skill"]["loaded"])
+        self.assertEqual(by_skill["alpha-skill"]["tokens"], 10)
+        self.assertIn("beta", by_skill)
+        self.assertFalse(by_skill["beta"]["loaded"])
+        self.assertEqual(by_skill["beta"]["source"], "用户配置")
+        self.assertIn("gamma", by_skill)
+        self.assertEqual(by_skill["gamma"]["source"], "内置")
+        self.assertNotIn("hidden", by_skill)
+        by_mcp = {m["name"]: m for m in r["mcp_servers"]}
+        self.assertIn("pencil", by_mcp)
+        self.assertEqual(by_mcp["pencil"]["tokens"], 250)
+        self.assertEqual(by_mcp["pencil"]["source"], "全局配置")
+
     # --- rendering ---
 
     def test_text_layout(self):
