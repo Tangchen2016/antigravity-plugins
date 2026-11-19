@@ -2,9 +2,21 @@
 
 用于独立版 Google Antigravity App 的插件合集。
 
-## 一键安装
+## 快速安装
 
-安装全部插件（点击代码块右上角可直接复制）：
+### 方式一：通过 Agent 安装（推荐）
+
+直接复制下面这句话发给 Antigravity，让 Agent 自动完成下载与安装：
+
+```text
+帮我从 https://github.com/Tangchen2016/antigravity-plugins 运行 install.sh 安装全部插件
+```
+
+> 如果只想安装单个插件，把「全部插件」换成插件名即可（例如 `progress-updates`、`desktop-context`、`language-packs`）。
+
+### 方式二：命令行一键安装
+
+在终端执行（点击代码块右上角可直接复制）：
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/Tangchen2016/antigravity-plugins/main/install.sh | bash
