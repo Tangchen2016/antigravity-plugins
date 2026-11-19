@@ -6,9 +6,9 @@
     {
       "name": "desktop-context",
       "displayName": "上下文用量",
-      "version": "1.0.2",
+      "version": "1.0.3",
       "type": "侧边栏扩展",
-      "description": "中文展示模型名称、上下文点阵图、分类 Token 占用与水位预警、可折叠上下文文件与已启用 MCP 服务。",
+      "description": "中文展示模型名称、上下文点阵图、压缩阈值预警、会话累计与按模型拆分的 Token/缓存消耗、分类占用与已启用 MCP 服务。",
       "path": "plugins/desktop-context",
       "tags": ["context", "token", "mcp"]
     },
@@ -24,9 +24,9 @@
     {
       "name": "progress-updates",
       "displayName": "进度播报与节奏控制",
-      "version": "0.3.0",
+      "version": "0.3.1",
       "type": "规则 + 侧边栏",
-      "description": "自带侧边栏设置面板，支持一键切换「聊天极简 TodoList（方案 A）/ Artifact 原地看板（方案 B）/ 经典里程碑」三种播报模式。",
+      "description": "自带侧边栏设置面板，按节点克制播报（≤30 字）且支持一键切换「聊天极简 TodoList / Artifact 原地看板 / 经典里程碑」三种模式。",
       "path": "plugins/progress-updates",
       "tags": ["rules", "workflow", "progress", "todo"]
     },

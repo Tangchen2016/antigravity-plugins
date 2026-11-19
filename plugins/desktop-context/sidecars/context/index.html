@@ -86,6 +86,34 @@
     background: color-mix(in srgb, var(--c-danger) 15%, transparent);
     border-color: color-mix(in srgb, var(--c-danger) 42%, transparent);
   }
+  .budget-line {
+    margin: -5px 0 10px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    font-size: 11.5px;
+    color: var(--dim);
+  }
+  .budget-line strong { font-weight: 600; color: var(--fg); }
+  .budget-pill {
+    font-size: 11px;
+    font-weight: 500;
+    padding: 0 7px;
+    border-radius: 999px;
+    border: 1px solid var(--line);
+    color: var(--dim);
+  }
+  .budget-pill.warn {
+    color: var(--c-warn);
+    background: color-mix(in srgb, var(--c-warn) 14%, transparent);
+    border-color: color-mix(in srgb, var(--c-warn) 38%, transparent);
+  }
+  .budget-pill.danger {
+    color: var(--c-danger);
+    background: color-mix(in srgb, var(--c-danger) 15%, transparent);
+    border-color: color-mix(in srgb, var(--c-danger) 42%, transparent);
+  }
 
   button {
     font: inherit; font-size: 11.5px; color: var(--dim); cursor: pointer; white-space: nowrap;
@@ -183,6 +211,93 @@
   .mark { width: 8px; height: 8px; border-radius: 50%; }
   .mark.sq { border-radius: 2px; }
   .mark.free { background: transparent; border: 1.5px solid var(--empty); }
+
+  /* session cumulative usage card */
+  .session-card {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 10px 12px;
+  }
+  .session-top {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 8px;
+    padding-bottom: 8px;
+    border-bottom: 1px dashed color-mix(in srgb, var(--line) 85%, transparent);
+  }
+  .session-total { display: flex; align-items: baseline; gap: 5px; }
+  .session-total .val { font-size: 18px; font-weight: 650; letter-spacing: -.015em; line-height: 1.15; }
+  .session-total .unit { font-size: 11.5px; color: var(--dim); }
+  .cache-pill {
+    font-size: 10.5px; font-weight: 500;
+    color: var(--c-ok);
+    background: color-mix(in srgb, var(--c-ok) 12%, transparent);
+    border: 1px solid color-mix(in srgb, var(--c-ok) 34%, transparent);
+    border-radius: 999px;
+    padding: 1px 7px;
+    white-space: nowrap;
+  }
+  .session-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px 12px;
+    margin-top: 8px;
+  }
+  .session-item { min-width: 0; }
+  .session-head { display: flex; align-items: baseline; justify-content: space-between; gap: 6px; font-size: 12px; }
+  .session-head .k { color: var(--dim); }
+  .session-head .v { font-weight: 600; }
+  .session-sub {
+    margin-top: 2px;
+    font-size: 11px;
+    color: var(--dim);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .model-list {
+    margin-top: 9px;
+    padding-top: 8px;
+    border-top: 1px dashed color-mix(in srgb, var(--line) 85%, transparent);
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+  }
+  .model-list-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 11px;
+    color: var(--dim);
+  }
+  .model-row { display: flex; flex-direction: column; gap: 2px; }
+  .model-row-top {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 8px;
+    font-size: 12px;
+  }
+  .model-row .m-name {
+    font-weight: 500;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .model-row .m-right { flex: none; display: inline-flex; align-items: baseline; gap: 6px; }
+  .model-row .m-tok { font-weight: 600; }
+  .model-row .m-turns { font-size: 11px; color: var(--dim); }
+  .model-row .m-sub {
+    font-size: 11px;
+    color: var(--dim);
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 8px;
+  }
+  .model-row .m-cache-ok { color: var(--c-ok); }
 
   /* checkpoint card */
   .ck-card {
@@ -375,6 +490,66 @@
       + `<span class="tok num">${fmtTok(c.tokens)}</span><span class="p num">${c.pct.toFixed(1)}%</span>${bar}</div>`;
   }
 
+  function sessionUsage(r) {
+    const s = r.session_usage;
+    if (!s || !s.turns) return '';
+    const cacheBadge = s.cache_read_tokens > 0
+      ? `<span class="cache-pill num" title="缓存命中 ${integer.format(s.cache_read_tokens)} / ${integer.format(s.input_tokens)} token">缓存命中 ${s.cache_hit_pct.toFixed(1)}%</span>`
+      : '';
+    const inParts = [`新增 ${fmtTok(s.input_uncached_tokens)}`];
+    if (s.cache_read_tokens > 0) inParts.push(`缓存 ${fmtTok(s.cache_read_tokens)}`);
+    if (s.cache_creation_tokens > 0) inParts.push(`写缓存 ${fmtTok(s.cache_creation_tokens)}`);
+    const outParts = s.thinking_tokens > 0
+      ? [`思考 ${fmtTok(s.thinking_tokens)}`, `回复 ${fmtTok(s.response_tokens)}`]
+      : [`回复 ${fmtTok(s.response_tokens)}`];
+    const models = Array.isArray(s.by_model) ? s.by_model : [];
+    const modelRows = models.map((m) => {
+      const mName = m.model === 'Unknown Model' ? '未知模型' : m.model;
+      const cacheText = m.cache_read_tokens > 0
+        ? `<span class="m-cache-ok">缓存 ${fmtTok(m.cache_read_tokens)} (${m.cache_hit_pct.toFixed(1)}%)</span>`
+        : '<span>无缓存命中</span>';
+      const detailTitle = `${mName}\n总计: ${integer.format(m.total_tokens)} token (${m.turns} 轮)\n输入: ${integer.format(m.input_tokens)}（新增 ${integer.format(m.input_uncached_tokens)} / 缓存 ${integer.format(m.cache_read_tokens)}）\n输出: ${integer.format(m.output_tokens)}（思考 ${integer.format(m.thinking_tokens)} / 回复 ${integer.format(m.response_tokens)}）`;
+      return `<div class="model-row" title="${esc(detailTitle)}">
+        <div class="model-row-top">
+          <span class="m-name">${esc(mName)}</span>
+          <span class="m-right num"><span class="m-tok">${fmtTok(m.total_tokens)}</span><span class="m-turns">${m.turns} 轮</span></span>
+        </div>
+        <div class="m-sub num">
+          <span>输入 ${fmtTok(m.input_tokens)}</span>
+          ${cacheText}
+          <span>输出 ${fmtTok(m.output_tokens)}</span>
+        </div>
+      </div>`;
+    }).join('');
+    const modelBlock = models.length
+      ? `<div class="model-list">
+          <div class="model-list-head"><span>按模型明细</span><span class="num">${models.length} 个模型</span></div>
+          ${modelRows}
+        </div>`
+      : '';
+    return `<section><h2>会话累计消耗 <span class="hint num">${s.turns} 轮请求</span></h2>
+      <div class="session-card">
+        <div class="session-top">
+          <div class="session-total" title="累计总计 ${integer.format(s.total_tokens)} token">
+            <span class="val num">${fmtTok(s.total_tokens)}</span>
+            <span class="unit">token</span>
+          </div>
+          ${cacheBadge}
+        </div>
+        <div class="session-grid">
+          <div class="session-item" title="累计输入 ${integer.format(s.input_tokens)} token">
+            <div class="session-head"><span class="k">累计输入</span><span class="v num">${fmtTok(s.input_tokens)}</span></div>
+            <div class="session-sub num">${inParts.join(' · ')}</div>
+          </div>
+          <div class="session-item" title="累计输出 ${integer.format(s.output_tokens)} token">
+            <div class="session-head"><span class="k">累计输出</span><span class="v num">${fmtTok(s.output_tokens)}</span></div>
+            <div class="session-sub num">${outParts.join(' · ')}</div>
+          </div>
+        </div>
+        ${modelBlock}
+      </div></section>`;
+  }
+
   function categories(r) {
     const conv = r.categories.filter((c) => CONVERSATION.has(c.key));
     const rest = r.categories.filter((c) => !CONVERSATION.has(c.key));
@@ -454,8 +629,18 @@
     const hoverRect = activeDot && !focusedSegment ? activeDot.getBoundingClientRect() : null;
     clearHighlight();
     const limit = r.limit_tokens;
+    const budget = r.request_budget_tokens || 0;
+    const showBudget = budget > 0 && limit > 0 && budget < limit;
+    const budgetPct = showBudget ? (r.used_tokens / budget * 100) : 0;
+    const warnPct = showBudget ? Math.max(r.used_pct, budgetPct) : r.used_pct;
     const pctBadge = limit
-      ? `<span class="pct-pill num${pctClass(r.used_pct)}">${r.used_pct.toFixed(1)}%</span>`
+      ? `<span class="pct-pill num${pctClass(warnPct)}">${r.used_pct.toFixed(1)}%</span>`
+      : '';
+    const budgetLine = showBudget
+      ? `<div class="budget-line" title="运行时单次请求上限 ${integer.format(budget)} token，超过将触发自动压缩">
+          <span>压缩阈值 <strong class="num">${fmtTok(budget)}</strong></span>
+          <span class="budget-pill num${pctClass(budgetPct)}">已达 ${budgetPct.toFixed(1)}%</span>
+        </div>`
       : '';
     main.innerHTML = `
       <div class="hero">
@@ -468,8 +653,10 @@
           <span class="of">/ ${limit ? fmtTok(limit) : '未知'} token</span>
           ${pctBadge}
         </div>
+        ${budgetLine}
         ${grid(r)}
       </div>
+      ${sessionUsage(r)}
       ${categories(r)}
       ${checkpoints(r)}
       ${files('knowledge', '知识文件', '/rules', r.knowledge_files)}

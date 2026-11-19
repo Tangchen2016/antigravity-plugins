@@ -767,16 +767,91 @@ def render(st: dict, model: str, system_files: list[tuple[str, int]], term_width
 # --- main --------------------------------------------------------------------
 
 
-def load(db_path: Path) -> tuple[list[Step], Msg | None]:
+def load_all(db_path: Path) -> tuple[list[Step], list[Msg]]:
     uri = "file:" + db_path.as_posix() + "?mode=ro"
     conn = sqlite3.connect(uri, uri=True)
     try:
         rows = conn.execute("SELECT idx, step_type, status, metadata, step_payload FROM steps ORDER BY idx").fetchall()
         steps = [Step(pos, r[4] or b"", r[1], r[2], r[3]) for pos, r in enumerate(rows)]
-        row = conn.execute("SELECT data FROM gen_metadata ORDER BY idx DESC LIMIT 1").fetchone()
+        gen_rows = conn.execute("SELECT data FROM gen_metadata ORDER BY idx").fetchall()
     finally:
         conn.close()
-    return steps, (Msg(row[0]) if row else None)
+    return steps, [Msg(r[0]) for r in gen_rows if r and r[0]]
+
+
+def load(db_path: Path) -> tuple[list[Step], Msg | None]:
+    steps, gens = load_all(db_path)
+    return steps, (gens[-1] if gens else None)
+
+
+def _finalize_usage_bucket(b: dict) -> dict:
+    b["input_tokens"] = b["input_uncached_tokens"] + b["cache_creation_tokens"] + b["cache_read_tokens"]
+    b["total_tokens"] = b["input_tokens"] + b["output_tokens"]
+    b["cache_hit_pct"] = round(b["cache_read_tokens"] / b["input_tokens"] * 100.0, 1) if b["input_tokens"] > 0 else 0.0
+    return b
+
+
+def collect_session_usage(gens: list[Msg], catalog: dict | None = None) -> dict:
+    def new_bucket(model: str = "", mid: str = "") -> dict:
+        b = {
+            "turns": 0,
+            "total_tokens": 0,
+            "input_tokens": 0,
+            "input_uncached_tokens": 0,
+            "cache_read_tokens": 0,
+            "cache_creation_tokens": 0,
+            "cache_hit_pct": 0.0,
+            "output_tokens": 0,
+            "thinking_tokens": 0,
+            "response_tokens": 0,
+        }
+        if model:
+            b["model"] = model
+            b["model_id"] = mid
+        return b
+
+    total = new_bucket()
+    by_model: dict[str, dict] = {}
+    for g in gens:
+        chat = g.msg(1)
+        usage = chat.msg(4) if chat is not None else None
+        if usage is None:
+            continue
+        in_u = usage.int(2)
+        out = usage.int(3)
+        cc = usage.int(4)
+        cr = usage.int(5)
+        think = usage.int(9)
+        resp = usage.int(10)
+        if resp == 0 and out > 0:
+            resp = max(0, out - think)
+        if not (in_u or out or cc or cr):
+            continue
+
+        mid = model_id(g)
+        cat_name = (catalog.get(mid) or {}).get("displayName") if mid and catalog else ""
+        mname = cat_name or model_name(g)
+        mb = by_model.get(mname)
+        if mb is None:
+            mb = new_bucket(mname, mid)
+            by_model[mname] = mb
+        elif mid and not mb["model_id"]:
+            mb["model_id"] = mid
+
+        for b in (total, mb):
+            b["turns"] += 1
+            b["input_uncached_tokens"] += in_u
+            b["cache_creation_tokens"] += cc
+            b["cache_read_tokens"] += cr
+            b["output_tokens"] += out
+            b["thinking_tokens"] += think
+            b["response_tokens"] += resp
+
+    _finalize_usage_bucket(total)
+    models = [_finalize_usage_bucket(b) for b in by_model.values()]
+    models.sort(key=lambda b: (-b["total_tokens"], -b["turns"], b["model"]))
+    total["by_model"] = models
+    return total
 
 
 # Native context windows from the model catalog, which the CLI fetches from the server
@@ -875,13 +950,17 @@ def main():
     if not db_path.is_file():
         raise SystemExit(f"Conversation database not found: {db_path}")
 
-    steps, gen = load(db_path)
+    steps, gens = load_all(db_path)
+    gen = gens[-1] if gens else None
+    catalog = {}
     catalog_entry = {}
     if args.model_catalog:
         with open(args.model_catalog, encoding="utf-8") as fh:
-            catalog_entry = json.load(fh).get(model_id(gen)) or {}
+            catalog = json.load(fh)
+            catalog_entry = catalog.get(model_id(gen)) or {}
     limit = args.limit if args.limit > 0 else int(catalog_entry.get("maxTokens") or 0) or context_limit(gen)
     st = collect_stats(steps, gen, limit)
+    session_usage = collect_session_usage(gens, catalog)
     model = catalog_entry.get("displayName") or model_name(gen)
     system_files = detect_system_files(os.path.expanduser("~"), args.workspace, args.app_dir)
     mcp_servers = detect_mcp_servers(os.path.expanduser("~"), args.workspace, st["mcp_tool_items"])
@@ -903,6 +982,7 @@ def main():
             "has_breakdown": st["has_breakdown"],
             "compacted": st["compacted"],
             "checkpoint_buffer": st["checkpoint"],
+            "session_usage": session_usage,
             "categories": [
                 {"icon": icon, "name": name, "key": key, "tokens": st[key], "pct": round(pct(st[key], limit), 1)}
                 for icon, name, key, always in CATEGORIES

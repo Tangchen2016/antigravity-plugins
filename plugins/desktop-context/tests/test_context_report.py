@@ -94,8 +94,15 @@ def planner(text: str) -> bytes:
     return f(1, text)
 
 
-def usage(input_tokens: int = 0, output: int = 0, cache_read: int = 0) -> bytes:
-    return m(f(2, input_tokens), f(3, output), f(5, cache_read))
+def usage(input_tokens: int = 0, output: int = 0, cache_read: int = 0, thinking: int = 0, response: int = 0, cache_creation: int = 0) -> bytes:
+    parts = [f(2, input_tokens), f(3, output), f(5, cache_read)]
+    if cache_creation:
+        parts.append(f(4, cache_creation))
+    if thinking:
+        parts.append(f(9, thinking))
+    if response:
+        parts.append(f(10, response))
+    return m(*parts)
 
 
 def tool_call(args: str) -> bytes:
@@ -316,6 +323,36 @@ class ReportTest(unittest.TestCase):
         self.db.generation([group(7, 300, ("0: USER_INPUT", 300))], max_context=256_000, model="new-model-x", display_name="")
         r = self.report()
         self.assertEqual((r["model"], r["limit_tokens"]), ("New Model X", 256_000))
+
+    def test_session_usage_aggregates_generations(self):
+        self.basic_steps()
+        self.db.generation([group(7, 300, ("0: USER_INPUT", 300))],
+                           usage=usage(input_tokens=1000, output=300, cache_read=0, thinking=200, response=100),
+                           model="gemini-4-neon-medium", display_name="Gemini 4 Neon (Medium)")
+        self.db.generation([group(7, 600, ("0: USER_INPUT", 600))],
+                           usage=usage(input_tokens=200, output=500, cache_read=1000, thinking=150, response=350),
+                           model="", display_name="Gemini 4 Neon (Medium)")
+        self.db.generation([group(7, 600, ("0: USER_INPUT", 600))],
+                           usage=usage(input_tokens=500, output=100, cache_read=500, thinking=40, response=60),
+                           model="gemini-4-carbon-medium", display_name="Gemini 4 Carbon (Medium)")
+        r = self.report()
+        s = r["session_usage"]
+        self.assertEqual(s["turns"], 3)
+        self.assertEqual(s["input_uncached_tokens"], 1700)
+        self.assertEqual(s["cache_read_tokens"], 1500)
+        self.assertEqual(s["input_tokens"], 3200)
+        self.assertEqual(s["output_tokens"], 900)
+        self.assertEqual(s["thinking_tokens"], 390)
+        self.assertEqual(s["response_tokens"], 510)
+        self.assertEqual(s["total_tokens"], 4100)
+        self.assertEqual(s["cache_hit_pct"], 46.9)
+        self.assertEqual(len(s["by_model"]), 2)
+        m0, m1 = s["by_model"]
+        self.assertEqual(m0["model"], "Gemini 4 Neon (Medium)")
+        self.assertEqual(m0["model_id"], "gemini-4-neon-medium")
+        self.assertEqual((m0["turns"], m0["total_tokens"], m0["cache_hit_pct"]), (2, 3000, 45.5))
+        self.assertEqual(m1["model"], "Gemini 4 Carbon (Medium)")
+        self.assertEqual((m1["turns"], m1["total_tokens"], m1["cache_hit_pct"]), (1, 1100, 50.0))
 
     # --- rendering ---
 

@@ -1,6 +1,6 @@
 {
   "name": "progress-updates",
   "displayName": "进度播报与节奏控制",
-  "description": "自带侧边栏设置面板，支持实时切换「聊天极简 TodoList / Artifact 原地看板 / 经典里程碑」三种进度播报模式。",
-  "version": "0.3.0"
+  "description": "自带侧边栏设置面板，支持实时切换「聊天极简 TodoList / Artifact 原地看板 / 经典里程碑」三种克制省 Token 的播报模式。",
+  "version": "0.3.1"
 }
