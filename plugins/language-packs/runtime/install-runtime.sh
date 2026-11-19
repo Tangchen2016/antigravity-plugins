@@ -37,5 +37,9 @@ fi
 
 mkdir -p "$RUNTIME_DIR/active"
 echo "正在安装 Antigravity 语言包注入运行时（监听目录：$RUNTIME_DIR/active）..."
-node "$RUNTIME_DIR/localization_engine.js" --apply "${EXTRA_ARGS[@]}" "$@"
+if [ "${#EXTRA_ARGS[@]}" -gt 0 ]; then
+  node "$RUNTIME_DIR/localization_engine.js" --apply "${EXTRA_ARGS[@]}" ${1+"$@"}
+else
+  node "$RUNTIME_DIR/localization_engine.js" --apply ${1+"$@"}
+fi
 echo "✔ 注入运行时安装完成。重启 Antigravity 后生效，之后可在「语言包管理」侧边栏实时切换中/英文或导入词库。"

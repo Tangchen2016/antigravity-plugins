@@ -1,9 +1,13 @@
 import { execFile } from 'node:child_process';
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, openSync, readFileSync, readSync, closeSync } from 'node:fs';
+import { createRequire } from 'node:module';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { Response, SidecarApp } from 'sidecar_sdk';
 import { createPackManager, PackError } from './packs.mjs';
+
+const require = createRequire(import.meta.url);
+const { readAsarLayout } = require('../../runtime/src/asar_patcher.js');
 
 const dataDirectory = process.env.ANTIGRAVITY_EXECUTABLE_DATA_DIR;
 if (!dataDirectory || !process.env.ANTIGRAVITY_SIDECAR_UI_TOKEN) {
@@ -22,13 +26,42 @@ const manager = createPackManager({
   bundledDirectory: fileURLToPath(new URL('../../dictionaries/', import.meta.url)),
 });
 
+function readAsarEntry(asarPath, relPath) {
+  const layout = readAsarLayout(asarPath);
+  const parts = relPath.split('/');
+  let node = layout.header;
+  for (const part of parts) {
+    node = node?.files?.[part];
+    if (!node) return null;
+  }
+  if (node.offset === undefined || !node.size) return null;
+  const fd = openSync(asarPath, 'r');
+  try {
+    const buf = Buffer.alloc(node.size);
+    readSync(fd, buf, 0, node.size, layout.dataStartOffset + Number(node.offset));
+    return buf.toString('utf8');
+  } finally {
+    closeSync(fd);
+  }
+}
+
 function getRuntimeStatus() {
   const isMac = process.platform === 'darwin';
   const resourcesDir = '/Applications/Antigravity.app/Contents/Resources';
   const asarPath = join(resourcesDir, 'app.asar');
-  const backupPath = join(resourcesDir, 'app.asar.bak');
   const appFound = isMac && existsSync(asarPath);
-  const installed = appFound && existsSync(backupPath);
+  let installed = false;
+  if (appFound) {
+    try {
+      const preload = readAsarEntry(asarPath, 'dist/preload.js') || '';
+      const utils = readAsarEntry(asarPath, 'dist/utils.js') || '';
+      const normalizedDir = directory.replace(/\/+$/, '');
+      installed = preload.includes('ANTIGRAVITY CHINESE LOCALIZATION START')
+        && (utils.includes(normalizedDir) || utils.includes(JSON.stringify(normalizedDir)));
+    } catch {
+      installed = false;
+    }
+  }
   return {
     supported: isMac,
     appFound,

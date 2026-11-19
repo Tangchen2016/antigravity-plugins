@@ -26,5 +26,5 @@ if ! command -v node >/dev/null 2>&1; then
 fi
 
 echo "正在还原 Antigravity 官方英文界面..."
-node "$RUNTIME_DIR/localization_engine.js" --restore "$@"
+node "$RUNTIME_DIR/localization_engine.js" --restore ${1+"$@"}
 echo "✔ 已还原官方英文界面，重启 Antigravity 后生效。"
