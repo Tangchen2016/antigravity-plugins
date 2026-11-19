@@ -12,6 +12,7 @@
       --line: var(--border, rgba(127, 127, 127, .24));
       --quiet: color-mix(in srgb, var(--ink) 4%, transparent);
       --hover: color-mix(in srgb, var(--ink) 8%, transparent);
+      --ok: #34a853;
       --error: light-dark(#cf222e, #ffb4ab);
     }
 
@@ -37,14 +38,40 @@
       align-items: flex-start;
       justify-content: space-between;
       gap: 12px;
-      margin-block-end: 16px;
+      margin-block-end: 14px;
     }
     .intro p { margin-block-start: 4px; font-size: 12.5px; }
 
-    .packs {
+    .card {
       border: 1px solid var(--line);
-      border-radius: 12px;
+      border-radius: 10px;
       overflow: hidden;
+    }
+
+    .runtime-card {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px 12px;
+      padding: 11px 12px;
+      margin-block-end: 14px;
+      background: var(--quiet);
+    }
+    .runtime-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .runtime-meta { margin-block-start: 2px; font-size: 11.5px; color: var(--dim); }
+    .pill {
+      font-size: 11px;
+      font-weight: 500;
+      padding: 1px 8px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      color: var(--dim);
+    }
+    .pill.ok {
+      color: var(--ok);
+      background: color-mix(in srgb, var(--ok) 12%, transparent);
+      border-color: color-mix(in srgb, var(--ok) 36%, transparent);
     }
 
     .pack {
@@ -56,14 +83,13 @@
       gap: 8px 12px;
       padding: 12px;
     }
-
     .pack + .pack { border-block-start: 1px solid var(--line); }
     .pack[data-active="true"] { background: var(--quiet); }
     .pack-info { flex: 1 1 120px; min-width: 0; }
     .pack-name { display: flex; align-items: baseline; flex-wrap: wrap; gap: 2px 8px; }
-    .pack-status, .pack-meta { font-size: 11px; }
+    .pack-status, .pack-meta { font-size: 11.5px; }
     .pack-meta { margin-block-start: 2px; font-variant-numeric: tabular-nums; }
-    .pack-actions { display: flex; flex-wrap: wrap; gap: 6px; }
+    .pack-actions, .runtime-actions { display: flex; flex-wrap: wrap; gap: 6px; }
 
     button {
       min-block-size: 28px;
@@ -78,22 +104,16 @@
       cursor: pointer;
       transition: background .12s ease, color .12s ease, border-color .12s ease;
     }
-
     button:hover:enabled { background: var(--hover); border-color: color-mix(in srgb, var(--dim) 55%, transparent); }
     button:focus-visible { outline: 2px solid currentColor; outline-offset: -3px; }
     button:disabled { opacity: .45; cursor: default; }
     .secondary { color: var(--dim); }
     .secondary:hover:enabled { color: var(--ink); }
 
-    .feedback { margin-block: 12px; overflow-wrap: anywhere; }
+    .feedback { margin-block: 12px; overflow-wrap: anywhere; font-size: 12.5px; }
     .feedback button { margin-block-start: 8px; }
     .error { color: var(--error); }
     .note { margin-block-start: 12px; font-size: 12px; }
-
-    @media (forced-colors: active) {
-      .pack[data-active="true"] { outline: 1px solid Highlight; outline-offset: -2px; }
-      .error { color: CanvasText; }
-    }
   </style>
 </head>
 <body>
@@ -103,10 +123,24 @@
         <h1>界面语言</h1>
         <p id="selection" class="muted">正在读取语言包…</p>
       </div>
-      <button type="button" id="reset-all" class="secondary" title="停用当前语言包并还原全部为扩展内置词库" disabled>还原默认</button>
+      <button type="button" id="reset-all" class="secondary" title="停用语言包恢复原版英文，并清除本地导入词库" disabled>还原默认</button>
     </header>
 
-    <section id="packs" class="packs" aria-label="语言包" aria-busy="true" hidden>
+    <section id="runtime" class="card runtime-card" aria-label="注入运行时" hidden>
+      <div>
+        <div class="runtime-head">
+          <h2>翻译监听运行时</h2>
+          <span id="runtime-pill" class="pill">未安装</span>
+        </div>
+        <p id="runtime-desc" class="runtime-meta">仅负责向主窗口注入监听，具体翻译文案完全由下方语言包维护。</p>
+      </div>
+      <div class="runtime-actions">
+        <button type="button" id="runtime-install">安装运行时</button>
+        <button type="button" id="runtime-uninstall" class="secondary" hidden>卸载运行时</button>
+      </div>
+    </section>
+
+    <section id="packs" class="card" aria-label="语言包" aria-busy="true" hidden>
       <article class="pack" data-locale="zh-CN" aria-labelledby="simplified-label">
         <div class="pack-info">
           <div class="pack-name">
@@ -145,7 +179,7 @@
       <p id="feedback" role="status" aria-live="polite" hidden></p>
       <button type="button" id="retry" hidden>重新检查</button>
     </div>
-    <p class="note muted">词库变更通常在约 3 秒内更新主窗口文案。停用语言包后会恢复当前安装的基础词库。</p>
+    <p class="note muted">安装运行时并重启一次后，切换语言包约 3 秒内生效；停用或点击「还原默认」即可在 3 秒内恢复原版英文。</p>
   </main>
   <script src="/preload.js"></script>
   <script>
@@ -155,6 +189,11 @@
     const feedback = document.querySelector('#feedback');
     const retry = document.querySelector('#retry');
     const resetAll = document.querySelector('#reset-all');
+    const runtimeCard = document.querySelector('#runtime');
+    const runtimePill = document.querySelector('#runtime-pill');
+    const runtimeDesc = document.querySelector('#runtime-desc');
+    const runtimeInstall = document.querySelector('#runtime-install');
+    const runtimeUninstall = document.querySelector('#runtime-uninstall');
     const rows = Array.from(list.querySelectorAll('.pack'));
     const number = new Intl.NumberFormat('zh-CN');
     const time = new Intl.DateTimeFormat('zh-CN', { dateStyle: 'short', timeStyle: 'short' });
@@ -167,16 +206,31 @@
       feedback.textContent = message || '';
     }
 
+    function renderRuntime(rt) {
+      if (!rt) { runtimeCard.hidden = true; return; }
+      runtimeCard.hidden = false;
+      runtimePill.classList.toggle('ok', Boolean(rt.installed));
+      runtimePill.textContent = rt.installed ? '已安装' : '未安装';
+      runtimeDesc.textContent = rt.installed
+        ? '主窗口已注入监听引擎；Antigravity 更新版本后可点右侧重新安装。'
+        : '首次使用请先安装注入运行时（会弹出系统管理员授权），完成后重启 Antigravity。';
+      runtimeInstall.textContent = rt.installed ? '重新安装' : '安装运行时';
+      runtimeUninstall.hidden = !rt.installed;
+      runtimeInstall.disabled = busy || !rt.supported || !rt.appFound;
+      runtimeUninstall.disabled = busy || !rt.supported;
+    }
+
     function render() {
       list.setAttribute('aria-busy', String(busy));
       retry.disabled = busy;
       if (!state) return;
 
+      renderRuntime(state.runtime);
       list.hidden = false;
       const activeLabel = labels[state.activeLocale];
       selection.textContent = !state.ready
         ? '语言包管理暂不可用'
-        : activeLabel ? `当前启用 · ${activeLabel}` : '当前使用基础词库';
+        : activeLabel ? `当前启用 · ${activeLabel}` : '当前使用 · 原版英文';
 
       for (const row of rows) {
         const locale = row.dataset.locale;
@@ -212,7 +266,6 @@
 
     async function request(action, data) {
       if (!window.sidecar?.fetch) throw new Error('请在 Antigravity 的扩展面板中打开此页面。');
-      // The SDK decodes HTTP chunks separately. ASCII JSON escapes keep multibyte text intact.
       const body = JSON.stringify(data).replace(/[\u0080-\uffff]/g,
         (char) => '\\u' + char.charCodeAt(0).toString(16).padStart(4, '0'));
       const response = await window.sidecar.fetch(`/api/${action}`, {
@@ -220,7 +273,15 @@
         headers: { 'Content-Type': 'application/json' },
         body,
       });
-      const result = await response.json();
+      const text = await response.text();
+      let result;
+      try {
+        result = JSON.parse(text);
+      } catch {
+        throw new Error(response.status === 404
+          ? '扩展后端需要重启，请在「个性化定制 → 已安装」中关闭再重新启用语言包管理。'
+          : '扩展返回了异常响应，请稍后重试。');
+      }
       if (result.error) throw new Error(result.error);
       if (!response.ok || !Array.isArray(result.packs)) throw new Error('无法读取语言包状态，请稍后重试。');
       return result;
@@ -265,10 +326,10 @@
       const label = labels[locale];
       const fileInput = row.querySelector('input');
       row.querySelector('[data-action="activate"]').addEventListener('click', () => {
-        run('activate', { locale }, `正在应用${label}…`, `${label}已应用。`);
+        run('activate', { locale }, `正在应用${label}…`, `${label}已应用（约 3 秒生效）。`);
       });
       row.querySelector('[data-action="deactivate"]').addEventListener('click', () => {
-        run('deactivate', {}, '正在停用语言包…', '已恢复基础词库。');
+        run('deactivate', {}, '正在停用语言包…', '已停用语言包，约 3 秒恢复原版英文。');
       });
       row.querySelector('[data-action="update"]').addEventListener('click', () => fileInput.click());
       row.querySelector('[data-action="reset"]').addEventListener('click', () => {
@@ -284,7 +345,13 @@
     }
 
     resetAll.addEventListener('click', () => {
-      run('reset', {}, '正在还原默认语言设置…', '已停用语言包并还原全部内置词库。');
+      run('reset', {}, '正在还原默认语言设置…', '已还原为原版英文并清除本地导入词库。');
+    });
+    runtimeInstall.addEventListener('click', () => {
+      run('runtime-install', {}, '正在请求管理员授权并安装运行时…', '运行时安装完成！请重启 Antigravity 后启用语言包。');
+    });
+    runtimeUninstall.addEventListener('click', () => {
+      run('runtime-uninstall', {}, '正在请求管理员授权并卸载运行时…', '已卸载运行时并还原官方应用包，重启 Antigravity 生效。');
     });
     retry.addEventListener('click', () => run('state', {}, '正在重新检查语言包…'));
     run('state', {}, '');

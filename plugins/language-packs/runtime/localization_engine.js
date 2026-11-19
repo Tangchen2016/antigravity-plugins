@@ -58,9 +58,9 @@ if (process.platform === 'darwin') {
     process.env.PATH = currentPaths.join(':');
 }
 
-// --tw 參數：使用繁體中文字典 (dicts_tw/)，否則使用預設簡體字典 (dicts/)
+// --tw 参数：界面日志/菜单使用繁体，默认简体；热更新词库统一监听 active/ 目录（单一数据源由插件维护）
 const USE_TW = process.argv.includes('--tw');
-const DICTS_FOLDER = USE_TW ? 'dicts_tw' : 'dicts';
+const DICTS_FOLDER = 'active';
 const BRAND_TITLE_ALIASES = {
     english: 'english',
     en: 'english',
@@ -194,7 +194,7 @@ function loadDictionary(fs, path, dictsDir, brandTitleMode) {
 
     const totalMap = Object.create(null);
     if (!fs.existsSync(dictsDir)) {
-        throw new Error(`词典目录不存在: ${dictsDir}`);
+        return totalMap;
     }
     const files = fs.readdirSync(dictsDir, { withFileTypes: true })
         .filter(file => file.isFile() && file.name.endsWith('.json'))
@@ -218,7 +218,7 @@ function loadDictionary(fs, path, dictsDir, brandTitleMode) {
         }
     }
     if (Object.keys(totalMap).length === 0) {
-        throw new Error(`词典目录未加载到有效词条: ${dictsDir}`);
+        return totalMap;
     }
     if (brandTitleMode === 'english') {
         delete totalMap[normalizeText('Antigravity')];

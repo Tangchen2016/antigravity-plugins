@@ -35,6 +35,7 @@ if [ "$HAS_BRAND" = false ]; then
   EXTRA_ARGS+=("--brand-title=english")
 fi
 
-echo "正在安装 Antigravity 主窗口汉化运行时（词库目录：$RUNTIME_DIR/dicts）..."
+mkdir -p "$RUNTIME_DIR/active"
+echo "正在安装 Antigravity 语言包注入运行时（监听目录：$RUNTIME_DIR/active）..."
 node "$RUNTIME_DIR/localization_engine.js" --apply "${EXTRA_ARGS[@]}" "$@"
-echo "✔ 汉化运行时安装完成。重启 Antigravity 后生效，此后可在「语言包管理」侧边栏实时切换简/繁体或导入词库。"
+echo "✔ 注入运行时安装完成。重启 Antigravity 后生效，之后可在「语言包管理」侧边栏实时切换中/英文或导入词库。"

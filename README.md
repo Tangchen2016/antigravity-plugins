@@ -77,36 +77,30 @@ curl -fsSL https://raw.githubusercontent.com/Tangchen2016/antigravity-plugins/ma
 
 ## 语言包管理
 
-`plugins/language-packs/` 是自包含的 Antigravity 中文汉化与语言包管理扩展，内置简体/繁体完整词库（4,903 条）以及主窗口热更新汉化运行时，无需额外依赖外部仓库。
+`plugins/language-packs/` 是自包含的 Antigravity 中文汉化与语言包管理扩展：**运行时只负责向主窗口注入监听引擎，不自带重复词库；所有简/繁体翻译文案（4,903 条）统一由插件维护**，支持在侧边栏内一键安装/卸载运行时并实时切换中/英文。
 
 <p>
-  <img src="docs/images/language-packs.png" alt="语言包管理面板效果图" width="460" />
+  <img src="docs/images/language-packs.png" alt="语言包管理面板效果图" width="480" />
 </p>
 
 ### 安装语言包管理
-
-**第 1 步：安装扩展**
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/Tangchen2016/antigravity-plugins/main/install.sh | bash -s -- language-packs
 ```
 
-**第 2 步：一键启用主窗口汉化运行时**（首次安装或 Antigravity App 更新后执行一次，需管理员权限）
+安装后在会话右侧打开 **概览 → 扩展 → 语言包管理**，直接点击面板顶部的 **「安装运行时」**（macOS 会弹出系统管理员授权框），完成后重启一次 Antigravity 即可开始实时切换。
 
-```bash
-bash ~/.gemini/config/plugins/language-packs/runtime/install-runtime.sh
-```
-
-> 如需还原为官方英文主窗口，执行：
+> 也可以在终端手动执行安装或卸载脚本：
 > ```bash
+> bash ~/.gemini/config/plugins/language-packs/runtime/install-runtime.sh
 > bash ~/.gemini/config/plugins/language-packs/runtime/uninstall-runtime.sh
 > ```
 
 ### 使用说明
-- 安装并重启 Antigravity 后，在会话右侧打开 **概览 → 扩展 → 语言包管理** 即可实时切换简体中文 / 繁體中文。
-- 点击 **更新词库** 可导入自定义 JSON（格式为 `{"英文原文":"译文"}`），启用中的语言包更新后会立即写入热更新目录，主窗口通常在约 3 秒内刷新。
-- 点击单语言包的 **还原内置** 可撤销本地导入词库，点击顶部 **还原默认** 可一键停用覆盖并还原全部内置词库。
-- 词库默认读取插件内置的 `runtime/dicts/`；如需自定义目录，可在 `sidecar.json` 中通过 `env.ANTIGRAVITY_HOT_DICTIONARY_DIR` 指定绝对路径。
+- **中/英实时热切换**：启用简体中文或繁體中文约 3 秒生效；点击 **停用** 或顶部 **还原默认** 即可在约 3 秒内恢复原版英文（无需卸载运行时）。
+- **自定义词库与还原**：点击 **更新词库** 导入自定义 JSON（格式为 `{"英文原文":"译文"}`），点击 **还原内置** 可撤销本地导入词库。
+- **面板内管理运行时**：Antigravity 更新版本后，可直接在面板内点 **重新安装**，或随时点 **卸载运行时** 还原官方应用包。
 
 ---
 

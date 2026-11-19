@@ -66,14 +66,12 @@ export function createPackManager({ directory, dataDirectory, bundledDirectory }
 
   function directoryProblem() {
     try {
-      if (!statSync(directory).isDirectory()) return '找不到热更新运行时使用的词库目录。';
+      mkdirSync(directory, { recursive: true });
+      if (!statSync(directory).isDirectory()) return '词库监听路径已被非目录文件占用。';
       accessSync(directory, constants.R_OK | constants.W_OK);
-      // A base file must exist so the runtime can fall back when the overlay is removed.
-      const hasBase = readdirSync(directory, { withFileTypes: true })
-        .some((file) => file.isFile() && file.name.endsWith('.json') && file.name !== activeFile);
-      return hasBase ? null : '热更新目录缺少基础词库。';
-    } catch (error) {
-      return error.code === 'ENOENT' ? '找不到热更新运行时使用的词库目录。' : '无法访问热更新词库目录。';
+      return null;
+    } catch {
+      return '无法访问词库监听目录，请检查目录权限。';
     }
   }
 
