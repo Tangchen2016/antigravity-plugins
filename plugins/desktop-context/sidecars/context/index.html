@@ -426,6 +426,22 @@
     </details>`;
   }
 
+  function mcpServers(items) {
+    if (!items || !items.length) return '';
+    const isOpen = openGroups.has('mcp') ? openGroups.get('mcp') : items.length <= 6;
+    const totalTok = items.reduce((sum, s) => sum + (s.tokens > 0 ? s.tokens : 0), 0);
+    const sumRight = totalTok > 0 ? `${fmtTok(totalTok)} · MCP` : 'MCP';
+    const rows = items.map((s) => {
+      const meta = [s.source, s.transport].filter(Boolean).join(' · ');
+      return `<li title="${esc(s.name)}"><span class="name">${esc(s.name)}<span class="dir">${esc(meta)}</span></span>`
+        + `<span class="tok num">${s.tokens > 0 ? fmtTok(s.tokens) : ''}</span></li>`;
+    }).join('');
+    return `<details class="file-group" data-group="mcp"${isOpen ? ' open' : ''}>
+      <summary><span class="sum-left">${CHEV_ICON}<span>MCP 服务</span><span class="count-pill num">${items.length}</span></span><span class="sum-right num">${sumRight}</span></summary>
+      <ul class="files">${rows}</ul>
+    </details>`;
+  }
+
   function pctClass(pct) {
     if (pct >= 85) return ' danger';
     if (pct >= 70) return ' warn';
@@ -459,6 +475,7 @@
       ${files('knowledge', '知识文件', '/rules', r.knowledge_files)}
       ${files('artifact', '产物文件', '/artifact', r.artifact_files)}
       ${files('skill', '技能文件', '/skill', r.skill_files)}
+      ${mcpServers(r.mcp_servers)}
       ${files('system', '系统文件', '自动加载', r.system_files)}
       <footer><span>/artifact · /skill · /rewind</span><span class="num">更新于 ${esc(new Date(r.updatedAt).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' }))}</span></footer>`;
     document.getElementById('copy').addEventListener('click', copy);

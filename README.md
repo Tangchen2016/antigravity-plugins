@@ -52,12 +52,16 @@ curl -fsSL https://raw.githubusercontent.com/Tangchen2016/antigravity-plugins/ma
 
 ## 上下文用量
 
-`plugins/desktop-context/` 提供中文上下文用量面板，帮助你实时掌握当前会话的 Token 分布与窗口水位。
+`plugins/desktop-context/` 提供中文上下文用量面板，帮助你实时掌握当前会话的 Token 分布、窗口水位与已启用的 MCP 服务。
+
+<p>
+  <img src="docs/images/desktop-context.png" alt="上下文用量面板效果图" width="400" />
+</p>
 
 ### 核心特性
 - **概览卡片与水位预警**：显示模型名称、已用 / 总窗口 Token 和 100 格点阵图；占比 `≥ 70%` 琥珀预警、`≥ 85%` 红色告警。
-- **分类分布与双向联动**：展示用户消息、智能体回复、工具调用、系统提示词、技能等分类占用微条；悬停圆点或分类行可双向高亮联动。
-- **上下文文件与检查点**：可折叠查看知识文件、产物文件、技能文件、系统文件及当前检查点状态，并支持一键复制 CLI 格式文本报告。
+- **分类分布与双向联动**：展示用户消息、智能体回复、工具调用、系统提示词、技能、MCP 工具等分类占用微条；悬停圆点或分类行可双向高亮联动。
+- **上下文文件与 MCP 服务**：可折叠查看知识文件、产物文件、技能文件、系统文件、检查点以及当前启用的 **MCP 服务**（合并全局/工作区/插件配置与会话内 MCP token 占用），并支持一键复制 CLI 格式文本报告。
 
 ### 安装上下文用量
 
@@ -74,6 +78,10 @@ curl -fsSL https://raw.githubusercontent.com/Tangchen2016/antigravity-plugins/ma
 ## 语言包管理
 
 `plugins/language-packs/` 是与「上下文用量」独立的侧边栏扩展，内置简体和繁体词库，从本机 `antigravity2-cn` 的词库整理而来。
+
+<p>
+  <img src="docs/images/language-packs.png" alt="语言包管理面板效果图" width="460" />
+</p>
 
 ### 安装语言包管理
 
@@ -92,6 +100,10 @@ curl -fsSL https://raw.githubusercontent.com/Tangchen2016/antigravity-plugins/ma
 ## 进度播报与节奏控制
 
 `plugins/progress-updates/` 是一个全局规则插件，用来解决模型在多步骤任务中容易长时间闷头执行、黑盒静默的问题。
+
+<p>
+  <img src="docs/images/progress-updates.png" alt="进度播报与节奏控制效果图" width="520" />
+</p>
 
 ### 核心特性
 - **按里程碑简短播报**：在动手前、定位根因、完成核心修改、完成测试验证等实质性节点用 1~3 句话同步进展；长耗时连续调用工具时也会兜底播报。
@@ -127,6 +139,7 @@ curl -fsSL https://raw.githubusercontent.com/Tangchen2016/antigravity-plugins/ma
 antigravity-plugins/
 ├── install.sh                    # 一键安装 / 更新脚本
 ├── README.md                     # 合集说明文档
+├── docs/images/                  # 插件效果预览图
 └── plugins/
     ├── desktop-context/          # 上下文用量侧边栏扩展
     ├── language-packs/           # 语言包管理侧边栏扩展

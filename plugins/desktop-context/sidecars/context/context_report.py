@@ -374,6 +374,97 @@ def detect_system_files(home: str, workspace: str | None, app_dir: str) -> list[
     return [(p, 0) for p in found]
 
 
+def _load_disabled_plugins(home: str) -> set[str]:
+    cfg_path = os.path.join(home, ".gemini", "config", "config.json")
+    disabled: set[str] = set()
+    try:
+        with open(cfg_path, encoding="utf-8") as fh:
+            data = json.load(fh)
+        plugins = data.get("plugins") or {}
+        if isinstance(plugins, dict):
+            for key, val in plugins.items():
+                if isinstance(val, dict) and val.get("enabled") is False:
+                    disabled.add(key)
+    except (OSError, ValueError):
+        pass
+    return disabled
+
+
+def _read_mcp_config(path: str, source: str) -> list[dict]:
+    items: list[dict] = []
+    try:
+        with open(path, encoding="utf-8") as fh:
+            data = json.load(fh)
+    except (OSError, ValueError):
+        return items
+    servers = data.get("mcpServers") if isinstance(data, dict) else None
+    if not isinstance(servers, dict):
+        return items
+    for name, cfg in servers.items():
+        if not isinstance(cfg, dict) or cfg.get("disabled") is True:
+            continue
+        transport = "HTTP" if (cfg.get("url") or cfg.get("serverUrl")) else "Stdio"
+        items.append({"name": name, "source": source, "transport": transport, "tokens": 0})
+    return items
+
+
+def detect_mcp_servers(home: str, workspace: str | None, mcp_tool_items: list[tuple[str, int]]) -> list[dict]:
+    """Collect enabled MCP servers from global/workspace/plugin configs and merge session MCP token items."""
+    disabled_plugins = _load_disabled_plugins(home)
+    servers: dict[str, dict] = {}
+
+    def add_all(entries: list[dict]) -> None:
+        for entry in entries:
+            servers.setdefault(entry["name"], entry)
+
+    add_all(_read_mcp_config(os.path.join(home, ".gemini", "config", "mcp_config.json"), "全局配置"))
+
+    plugin_roots = [os.path.join(home, ".gemini", "config", "plugins")]
+    if workspace:
+        ws = os.path.abspath(workspace)
+        for dot in (".agents", ".agent"):
+            add_all(_read_mcp_config(os.path.join(ws, dot, "mcp_config.json"), "工作区"))
+            plugin_roots.append(os.path.join(ws, dot, "plugins"))
+
+    for proot in plugin_roots:
+        if not os.path.isdir(proot):
+            continue
+        try:
+            names = sorted(os.listdir(proot))
+        except OSError:
+            continue
+        for pdir in names:
+            if pdir in disabled_plugins:
+                continue
+            pfull = os.path.join(proot, pdir)
+            mcp_file = os.path.join(pfull, "mcp_config.json")
+            if not os.path.isfile(mcp_file):
+                continue
+            pjson = os.path.join(pfull, "plugin.json")
+            if os.path.isfile(pjson):
+                try:
+                    with open(pjson, encoding="utf-8") as fh:
+                        if json.load(fh).get("disabled") is True:
+                            continue
+                except (OSError, ValueError):
+                    pass
+            add_all(_read_mcp_config(mcp_file, f"插件 · {pdir}"))
+
+    for raw_name, tok in mcp_tool_items:
+        matched = None
+        for sname in servers:
+            if raw_name == sname or raw_name.startswith((f"{sname}:", f"{sname}_", f"{sname}/", f"mcp_{sname}_")):
+                matched = sname
+                break
+        if matched:
+            servers[matched]["tokens"] += tok
+        elif raw_name:
+            entry = servers.setdefault(raw_name, {"name": raw_name, "source": "当前会话", "transport": "MCP", "tokens": 0})
+            entry["tokens"] += tok
+
+    return sorted(servers.values(), key=lambda x: (-x["tokens"], x["name"]))
+
+
 def collect_stats(steps: list[Step], gen: Msg | None, limit: int) -> dict:
     st = {k: 0 for k in (
         "user", "agent", "tool", "checkpoint", "system_messages", "system_prompt", "system_tools",
@@ -382,7 +473,7 @@ def collect_stats(steps: list[Step], gen: Msg | None, limit: int) -> dict:
     )}
     st["has_breakdown"] = False
     st["active_checkpoint"] = -1
-    checkpoints, knowledge, artifacts, skill_files = [], [], [], []
+    checkpoints, knowledge, artifacts, skill_files, mcp_tool_items = [], [], [], [], []
     seen_k, seen_a, seen_s = set(), set(), set()
 
     chat = gen.msg(1) if gen is not None else None
@@ -464,6 +555,10 @@ def collect_stats(steps: list[Step], gen: Msg | None, limit: int) -> dict:
                 st["rules"] += gtok
             elif gtype == TOKEN_MCP_TOOLS:
                 st["mcp_tools"] += gtok
+                for item in g.msgs(5):
+                    iname, itok = item.str(1), item.int(2)
+                    if iname:
+                        mcp_tool_items.append((iname, itok))
             elif gtype == TOKEN_SKILLS:
                 st["skills"] += gtok
             elif gtype == TOKEN_SUBAGENTS:
@@ -512,6 +607,7 @@ def collect_stats(steps: list[Step], gen: Msg | None, limit: int) -> dict:
     st["knowledge_files"] = knowledge
     st["artifact_files"] = artifacts
     st["skill_files"] = skill_files
+    st["mcp_tool_items"] = mcp_tool_items
     return st
 
 
@@ -788,6 +884,7 @@ def main():
     st = collect_stats(steps, gen, limit)
     model = catalog_entry.get("displayName") or model_name(gen)
     system_files = detect_system_files(os.path.expanduser("~"), args.workspace, args.app_dir)
+    mcp_servers = detect_mcp_servers(os.path.expanduser("~"), args.workspace, st["mcp_tool_items"])
 
     if args.json:
         print(json.dumps({
@@ -817,6 +914,7 @@ def main():
             "artifact_files": [{"path": p, "tokens": t} for p, t in st["artifact_files"]],
             "skill_files": [{"path": p, "tokens": t} for p, t in st["skill_files"]],
             "system_files": [{"path": p} for p, _ in system_files],
+            "mcp_servers": mcp_servers,
         }, indent=2))
         return
 
