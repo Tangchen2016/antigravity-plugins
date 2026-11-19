@@ -16,12 +16,14 @@ trap cleanup EXIT
 usage() {
   cat <<EOF
 用法:
-  ./install.sh                     安装全部插件
+  ./install.sh                     默认仅安装「插件市场 (plugin-market)」，装完后可在侧边栏按需安装其他插件
+  ./install.sh --all               安装仓库内全部插件
   ./install.sh <plugin> [...]      安装指定插件
   ./install.sh --list              列出可用插件
 
 远程一键安装:
   curl -fsSL https://raw.githubusercontent.com/${REPO}/${BRANCH}/install.sh | bash
+  curl -fsSL https://raw.githubusercontent.com/${REPO}/${BRANCH}/install.sh | bash -s -- --all
   curl -fsSL https://raw.githubusercontent.com/${REPO}/${BRANCH}/install.sh | bash -s -- progress-updates
 EOF
 }
@@ -72,6 +74,8 @@ main() {
 
   local targets=()
   if [ "$#" -eq 0 ]; then
+    targets=("plugin-market")
+  elif [ "$#" -eq 1 ] && [ "$1" = "--all" ]; then
     while IFS= read -r name; do
       [ -n "$name" ] && targets+=("$name")
     done < <(list_plugins "$src_dir")
@@ -101,7 +105,11 @@ main() {
   done
 
   echo ""
-  echo "完成（共 ${#installed[@]} 个插件）。打开 Antigravity「个性化定制 → 已安装」即可管理；规则类插件下一轮对话即生效，侧边栏扩展如未刷新请关闭旧面板标签后重开。"
+  if [ "${#installed[@]}" -eq 1 ] && [ "${installed[0]}" = "plugin-market" ]; then
+    echo "完成！打开 Antigravity 会话右侧「概览 → 扩展 → 插件市场」即可按需浏览、安装与更新其他插件（如未立即出现，重启一次 Antigravity 即可）。"
+  else
+    echo "完成（共 ${#installed[@]} 个插件）。打开 Antigravity「个性化定制 → 已安装」即可管理；规则类插件下一轮对话即生效，侧边栏扩展如未刷新请关闭旧面板标签后重开。"
+  fi
 }
 
 main "$@"

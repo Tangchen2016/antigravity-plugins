@@ -16,17 +16,17 @@
 
 ---
 
-## 快速安装
+## 快速安装（推荐：只装「插件市场」，按需挑选）
+
+默认只需安装 **插件市场（`plugin-market`）** 这一个入口扩展，装完即可在 Antigravity 右侧边栏可视化浏览、按需安装、更新和停用其他插件，无需一次全装。
 
 ### 方式一：通过 Agent 安装（推荐）
 
-直接复制下面这句话发给 Antigravity，让 Agent 自动完成下载与安装：
+直接复制下面这句话发给 Antigravity，让 Agent 自动完成安装：
 
 ```text
-帮我从 https://github.com/Tangchen2016/antigravity-plugins 运行 install.sh 安装全部插件
+帮我从 https://github.com/Tangchen2016/antigravity-plugins 运行 install.sh 安装插件市场
 ```
-
-> 如果只想安装单个插件，把「全部插件」换成插件名即可（如 `progress-updates`、`desktop-context`、`language-packs`）。
 
 ### 方式二：命令行一键安装
 
@@ -36,7 +36,12 @@
 curl -fsSL https://raw.githubusercontent.com/Tangchen2016/antigravity-plugins/main/install.sh | bash
 ```
 
-> 再次运行同一条命令即可更新到最新版本；若已克隆仓库到本地，也可直接执行 `./install.sh`、`./install.sh --list` 或 `./install.sh <插件名>`。
+安装完成后，在会话右侧打开 **概览 → 扩展 → 插件市场** 即可按需安装下方任意插件（首次安装扩展如未出现，重启一次 Antigravity 即可）。
+
+> 若希望一次性命令行安装仓库内全部插件，可执行：
+> ```bash
+> curl -fsSL https://raw.githubusercontent.com/Tangchen2016/antigravity-plugins/main/install.sh | bash -s -- --all
+> ```
 
 ---
 
@@ -153,11 +158,12 @@ curl -fsSL https://raw.githubusercontent.com/Tangchen2016/antigravity-plugins/ma
 
 ## 更新与卸载
 
-- **更新全部插件**：重新运行一键安装命令即可覆盖更新到最新版本：
+- **图形化更新 / 卸载（推荐）**：打开右侧 **概览 → 扩展 → 插件市场**，可一键更新单个或全部插件，以及启用、停用、卸载。
+- **命令行更新全部插件**：
   ```bash
-  curl -fsSL https://raw.githubusercontent.com/Tangchen2016/antigravity-plugins/main/install.sh | bash
+  curl -fsSL https://raw.githubusercontent.com/Tangchen2016/antigravity-plugins/main/install.sh | bash -s -- --all
   ```
-- **卸载指定插件**：在 Antigravity **个性化定制 → 已安装** 中直接关闭/卸载，或删除对应目录：
+- **命令行卸载指定插件**：
   ```bash
   rm -rf ~/.gemini/config/plugins/<插件名>
   ```
