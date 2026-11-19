@@ -8,8 +8,7 @@
     :root {
       color-scheme: light dark;
       --ink: var(--foreground, #1f2328);
-      --surface: var(--background, transparent);
-      --muted: var(--muted-foreground, #57606a);
+      --dim: var(--muted-foreground, #57606a);
       --line: var(--border, rgba(127, 127, 127, .24));
       --quiet: color-mix(in srgb, var(--ink) 4%, transparent);
       --hover: color-mix(in srgb, var(--ink) 8%, transparent);
@@ -31,7 +30,7 @@
     h1, h2, p { margin: 0; }
     h1 { font-size: 18px; font-weight: 650; letter-spacing: -.01em; }
     h2 { font-size: 14px; font-weight: 600; }
-    .muted { color: var(--muted); }
+    .muted { color: var(--dim); }
 
     .intro {
       display: flex;
@@ -80,10 +79,10 @@
       transition: background .12s ease, color .12s ease, border-color .12s ease;
     }
 
-    button:hover:enabled { background: var(--hover); border-color: color-mix(in srgb, var(--muted) 55%, transparent); }
+    button:hover:enabled { background: var(--hover); border-color: color-mix(in srgb, var(--dim) 55%, transparent); }
     button:focus-visible { outline: 2px solid currentColor; outline-offset: -3px; }
     button:disabled { opacity: .45; cursor: default; }
-    .secondary { color: var(--muted); }
+    .secondary { color: var(--dim); }
     .secondary:hover:enabled { color: var(--ink); }
 
     .feedback { margin-block: 12px; overflow-wrap: anywhere; }
