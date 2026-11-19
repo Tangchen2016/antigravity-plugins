@@ -369,10 +369,22 @@ export function createMarketManager({
     return state({ force: false });
   }
 
+  async function openPluginDir(name) {
+    if (!name) throw new MarketError('缺少插件名称。');
+    const list = await listInstalled();
+    const target = list.find((p) => p.name === name);
+    const dir = target?.path || join(pluginsDir, name);
+    if (!existsSync(dir)) throw new MarketError(`未找到插件目录：${dir}`);
+    const cmd = process.platform === 'darwin' ? 'open' : process.platform === 'win32' ? 'explorer' : 'xdg-open';
+    await runCmd(cmd, [dir]);
+    return state({ force: false });
+  }
+
   return {
     state,
     installPlugin,
     updateAll,
+    openPluginDir,
     togglePlugin,
     uninstallPlugin,
     addSource,

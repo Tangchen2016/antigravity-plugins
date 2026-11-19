@@ -17,6 +17,7 @@ const actions = {
   state: ({ force = false } = {}) => manager.state({ force }),
   install: (req) => manager.installPlugin(req),
   'update-all': () => manager.updateAll(),
+  'open-dir': ({ name }) => manager.openPluginDir(name),
   enable: ({ name }) => manager.togglePlugin(name, true),
   disable: ({ name }) => manager.togglePlugin(name, false),
   uninstall: ({ name }) => manager.uninstallPlugin(name),

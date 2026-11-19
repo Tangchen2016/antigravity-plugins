@@ -255,6 +255,7 @@
             ? `<button class="btn warn" data-act="install" data-name="${esc(p.name)}" data-repo="${esc(p.repo)}" data-branch="${esc(p.branch)}" data-path="${esc(p.remotePath)}" ${busy ? 'disabled' : ''}>更新至 v${esc(p.remoteVersion)}</button>`
             : `<button class="btn ghost" data-act="install" data-name="${esc(p.name)}" data-repo="${esc(p.repo)}" data-branch="${esc(p.branch)}" data-path="${esc(p.remotePath)}" ${busy ? 'disabled' : ''}>更新</button>`)
         : '';
+      const openDirBtn = `<button class="btn ghost" data-act="open-dir" data-name="${esc(p.name)}" ${busy ? 'disabled' : ''}>打开目录</button>`;
       const toggleBtn = p.enabled
         ? `<button class="btn ghost" data-act="disable" data-name="${esc(p.name)}" ${busy ? 'disabled' : ''}>停用</button>`
         : `<button class="btn primary" data-act="enable" data-name="${esc(p.name)}" ${busy ? 'disabled' : ''}>启用</button>`;
@@ -271,7 +272,7 @@
         <p class="desc">${esc(p.description || '暂无简介')}</p>
         <div class="card-foot">
           <span class="meta">${esc(p.name)}</span>
-          <div class="actions">${updateBtn}${toggleBtn}${uninstallBtn}</div>
+          <div class="actions">${openDirBtn}${updateBtn}${toggleBtn}${uninstallBtn}</div>
         </div>
       </article>`;
     }).join('');
@@ -356,6 +357,7 @@
     const btn = e.target.closest('button[data-act]');
     if (!btn || busy) return;
     const { act, name, repo, branch, path } = btn.dataset;
+    if (act === 'open-dir') return run('open-dir', { name }, `正在打开 ${name} 目录…`, `已在访达中打开 ${name} 目录。`);
     if (act === 'enable') return run('enable', { name }, `正在启用 ${name}…`, `已启用 ${name}。`);
     if (act === 'disable') return run('disable', { name }, `正在停用 ${name}…`, `已停用 ${name}。`);
     if (act === 'uninstall') return run('uninstall', { name }, `正在卸载 ${name}…`, `已卸载 ${name}。`);

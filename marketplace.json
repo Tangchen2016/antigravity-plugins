@@ -24,9 +24,9 @@
     {
       "name": "progress-updates",
       "displayName": "进度播报与节奏控制",
-      "version": "0.2.0",
-      "type": "全局规则",
-      "description": "多任务自动输出引用块 TodoList 并按关键节点实时更新进度（如 2/4），常规步骤自主推进，仅在分叉/高风险/阻塞节点暂停确认。",
+      "version": "0.3.0",
+      "type": "规则 + 侧边栏",
+      "description": "自带侧边栏设置面板，支持一键切换「聊天极简 TodoList（方案 A）/ Artifact 原地看板（方案 B）/ 经典里程碑」三种播报模式。",
       "path": "plugins/progress-updates",
       "tags": ["rules", "workflow", "progress", "todo"]
     },

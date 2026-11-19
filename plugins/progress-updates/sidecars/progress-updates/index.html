@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>进度播报设置</title>
+  <script src="/preload.js"></script>
+  <style>
+    :root {
+      color-scheme: light dark;
+      --ink: var(--foreground, #1f2328);
+      --dim: var(--muted-foreground, #57606a);
+      --line: var(--border, rgba(127, 127, 127, .24));
+      --surface: color-mix(in srgb, var(--ink) 3.5%, transparent);
+      --hover: color-mix(in srgb, var(--ink) 7.5%, transparent);
+      --accent: #4c8df6;
+      --ok: #34a853;
+      --error: light-dark(#cf222e, #ffb4ab);
+    }
+    * { box-sizing: border-box; }
+    [hidden] { display: none !important; }
+    body {
+      margin: 0;
+      color: var(--ink);
+      background: transparent;
+      font: 13px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      -webkit-font-smoothing: antialiased;
+    }
+    main { max-inline-size: 620px; padding: 14px 16px 20px; }
+    h1 { margin: 0 0 4px; font-size: 17px; font-weight: 650; }
+    .sub { margin: 0 0 14px; font-size: 12.5px; color: var(--dim); }
+    .cards { display: flex; flex-direction: column; gap: 8px; }
+    .card {
+      text-align: left;
+      width: 100%;
+      font: inherit;
+      color: var(--ink);
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 11px 13px;
+      cursor: pointer;
+      transition: background .12s ease, border-color .12s ease;
+    }
+    .card:hover:enabled { background: var(--hover); }
+    .card.active {
+      border-color: color-mix(in srgb, var(--accent) 65%, transparent);
+      background: color-mix(in srgb, var(--accent) 8%, transparent);
+    }
+    .card:disabled { opacity: .6; cursor: default; }
+    .row { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+    .title { font-size: 13.5px; font-weight: 600; }
+    .pill {
+      font-size: 10.5px; padding: 1px 7px; border-radius: 999px;
+      border: 1px solid var(--line); color: var(--dim);
+    }
+    .card.active .pill {
+      color: var(--ok);
+      background: color-mix(in srgb, var(--ok) 12%, transparent);
+      border-color: color-mix(in srgb, var(--ok) 38%, transparent);
+    }
+    .desc { margin: 5px 0 0; font-size: 12px; color: var(--dim); line-height: 1.5; }
+    .feedback { margin-top: 12px; font-size: 12px; color: var(--dim); }
+    .feedback.error { color: var(--error); }
+  </style>
+</head>
+<body>
+<main>
+  <h1>进度播报模式</h1>
+  <p class="sub">切换后会立即更新全局规则，无需重启，下一轮对话直接生效。</p>
+  <div id="cards" class="cards"></div>
+  <p id="feedback" class="feedback" hidden></p>
+</main>
+<script>
+(() => {
+  const cardsEl = document.getElementById('cards');
+  const feedbackEl = document.getElementById('feedback');
+  let state = null;
+  let busy = false;
+
+  const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+  function setFeedback(msg, isError = false) {
+    feedbackEl.hidden = !msg;
+    feedbackEl.textContent = msg || '';
+    feedbackEl.classList.toggle('error', isError);
+  }
+
+  async function api(action, payload = {}) {
+    if (!window.sidecar?.fetch) throw new Error('请在 Antigravity 侧边栏中打开此面板。');
+    const res = await window.sidecar.fetch(`/api/${action}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    const data = await res.json();
+    if (data.error) throw new Error(data.error);
+    return data;
+  }
+
+  function render() {
+    if (!state) return;
+    cardsEl.innerHTML = state.modes.map((m) => {
+      const active = m.id === state.activeMode;
+      return `<button type="button" class="card${active ? ' active' : ''}" data-mode="${esc(m.id)}" ${busy ? 'disabled' : ''}>
+        <div class="row">
+          <span class="title">${esc(m.title)}</span>
+          <span class="pill">${active ? '当前使用' : esc(m.badge)}</span>
+        </div>
+        <p class="desc">${esc(m.summary)}</p>
+      </button>`;
+    }).join('');
+  }
+
+  async function selectMode(mode) {
+    if (busy || state?.activeMode === mode) return;
+    busy = true;
+    render();
+    setFeedback('正在切换播报模式…');
+    try {
+      state = await api('set-mode', { mode });
+      setFeedback('已切换，下一轮对话立即生效。');
+    } catch (err) {
+      setFeedback(err.message || '切换失败', true);
+    } finally {
+      busy = false;
+      render();
+    }
+  }
+
+  cardsEl.addEventListener('click', (e) => {
+    const btn = e.target.closest('button[data-mode]');
+    if (btn) selectMode(btn.dataset.mode);
+  });
+
+  api('state').then((data) => { state = data; render(); }).catch((err) => setFeedback(err.message, true));
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,17 @@
+{
+  "command": "node",
+  "args": ["main.mjs"],
+  "display_name": "进度播报设置",
+  "description": "实时切换 Agent 进度播报与 TodoList 展示模式，下一轮对话即生效。",
+  "has_web_ui": true,
+  "ui_config": {
+    "display_name": "进度播报设置",
+    "views": [
+      {
+        "path": "/",
+        "entrypoint": "SIDECAR_UI_ENTRYPOINT_AUX_PANE",
+        "title": "进度播报设置"
+      }
+    ]
+  }
+}
