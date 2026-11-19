@@ -177,7 +177,10 @@
 
     <div class="feedback">
       <p id="feedback" role="status" aria-live="polite" hidden></p>
-      <button type="button" id="retry" hidden>重新检查</button>
+      <div class="runtime-actions" style="margin-block-start:8px">
+        <button type="button" id="open-privacy" hidden>打开「App 管理」设置</button>
+        <button type="button" id="retry" hidden>重新检查</button>
+      </div>
     </div>
     <p class="note muted">安装运行时并重启一次后，切换语言包约 3 秒内生效；停用或点击「还原默认」即可在 3 秒内恢复原版英文。</p>
   </main>
@@ -188,6 +191,7 @@
     const selection = document.querySelector('#selection');
     const feedback = document.querySelector('#feedback');
     const retry = document.querySelector('#retry');
+    const openPrivacy = document.querySelector('#open-privacy');
     const resetAll = document.querySelector('#reset-all');
     const runtimeCard = document.querySelector('#runtime');
     const runtimePill = document.querySelector('#runtime-pill');
@@ -291,6 +295,7 @@
       if (busy) return;
       busy = true;
       retry.hidden = true;
+      openPrivacy.hidden = true;
       render();
       showFeedback(pending);
       try {
@@ -300,7 +305,9 @@
       } catch (error) {
         if (action === 'state' && !state) selection.textContent = '读取语言包失败';
         retry.hidden = false;
-        showFeedback(error.message || '操作未完成，请重试。', true);
+        const msg = error.message || '操作未完成，请重试。';
+        openPrivacy.hidden = !/App 管理|EPERM|operation not permitted/i.test(msg);
+        showFeedback(msg, true);
       } finally {
         busy = false;
         render();
@@ -352,6 +359,9 @@
     });
     runtimeUninstall.addEventListener('click', () => {
       run('runtime-uninstall', {}, '正在请求管理员授权并卸载运行时…', '已卸载运行时并还原官方应用包，重启 Antigravity 生效。');
+    });
+    openPrivacy.addEventListener('click', () => {
+      run('open-app-management', {}, '正在打开系统设置 → 隐私与安全性 → App 管理…', '已打开「App 管理」设置：请勾选开启 Antigravity 后回到此处重试。');
     });
     retry.addEventListener('click', () => run('state', {}, '正在重新检查语言包…'));
     run('state', {}, '');

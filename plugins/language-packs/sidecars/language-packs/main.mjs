@@ -99,6 +99,18 @@ function runPrivilegedScript(scriptPath, extraArgs = []) {
   });
 }
 
+function openAppManagementSettings() {
+  if (process.platform !== 'darwin') {
+    throw new PackError('仅 macOS 支持自动打开系统设置。');
+  }
+  return new Promise((resolve, reject) => {
+    execFile('open', ['x-apple.systempreferences:com.apple.preference.security?Privacy_AppBundles'], (err) => {
+      if (err) return reject(new PackError('无法自动打开系统设置，请手动前往 系统设置 → 隐私与安全性 → App 管理。'));
+      resolve();
+    });
+  });
+}
+
 function fullState() {
   return { ...manager.state(), runtime: getRuntimeStatus() };
 }
@@ -119,6 +131,10 @@ const actions = {
   },
   'runtime-uninstall': async () => {
     await runPrivilegedScript(uninstallScript, ['--no-kill']);
+    return fullState();
+  },
+  'open-app-management': async () => {
+    await openAppManagementSettings();
     return fullState();
   },
 };

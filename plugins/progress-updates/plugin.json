@@ -1,6 +1,6 @@
 {
   "name": "progress-updates",
   "displayName": "进度播报与节奏控制",
-  "description": "让 Agent 按关键里程碑用引用块简短播报进展，常规步骤自主推进，仅在关键决策或高风险节点暂停确认。",
-  "version": "0.1.0"
+  "description": "多任务自动输出引用块 TodoList 并按关键节点实时更新进度（如 2/4），单步任务精简播报，仅在关键决策或高风险节点暂停确认。",
+  "version": "0.2.0"
 }
