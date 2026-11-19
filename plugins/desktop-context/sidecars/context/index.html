@@ -13,16 +13,21 @@
     --c-tool: #f9ab00;
     --c-custom: #c58af9;
     --c-sysmsg: #f28b82;
+    --c-ok: #81c995;
+    --c-warn: #f9ab00;
+    --c-danger: #f28b82;
     --fg: var(--foreground, #e3e3e3);
     --dim: var(--muted-foreground, #9aa0a6);
-    --line: var(--border, rgba(127, 127, 127, .25));
-    --empty: color-mix(in srgb, var(--dim) 28%, transparent);
+    --line: var(--border, rgba(127, 127, 127, .22));
+    --surface: color-mix(in srgb, var(--fg) 3.5%, transparent);
+    --surface-hover: color-mix(in srgb, var(--fg) 7.5%, transparent);
+    --empty: color-mix(in srgb, var(--dim) 24%, transparent);
   }
   * { box-sizing: border-box; }
   body {
     margin: 0;
     color: var(--fg);
-    font: 13px/1.4 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    font: 13px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     -webkit-font-smoothing: antialiased;
   }
   /* thin overlay-style scrollbar instead of the platform default */
@@ -42,68 +47,213 @@
   .dim { color: var(--dim); }
   .num { font-variant-numeric: tabular-nums; }
 
-  /* header */
-  .top { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
-  .model { font-size: 12px; color: var(--dim); display: flex; align-items: center; gap: 6px; }
-  .live { width: 6px; height: 6px; border-radius: 50%; background: var(--empty); flex: none; }
-  .live.on { background: #81c995; }
-  .usage { margin: 2px 0 12px; display: flex; align-items: baseline; gap: 6px; flex-wrap: wrap; }
-  .usage .big { font-size: 24px; font-weight: 600; letter-spacing: -.01em; }
-  .usage .of { color: var(--dim); }
-  .usage .pct { margin-left: auto; font-size: 13px; font-weight: 600; }
-  button {
-    font: inherit; font-size: 12px; color: var(--dim); cursor: pointer; white-space: nowrap;
-    background: transparent; border: 1px solid var(--line); border-radius: 6px; padding: 3px 8px;
+  /* hero card */
+  .hero {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 12px 12px 11px;
   }
-  button:hover { color: var(--fg); border-color: var(--dim); }
+  .top { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+  .model {
+    font-size: 12px; color: var(--dim);
+    display: flex; align-items: center; gap: 6px;
+    min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .live { width: 6px; height: 6px; border-radius: 50%; background: var(--empty); flex: none; }
+  .live.on { background: var(--c-ok); box-shadow: 0 0 0 2px color-mix(in srgb, var(--c-ok) 22%, transparent); }
+
+  .usage { margin: 6px 0 11px; display: flex; align-items: baseline; gap: 6px; flex-wrap: wrap; }
+  .usage .big { font-size: 24px; font-weight: 650; letter-spacing: -.02em; line-height: 1.15; }
+  .usage .of { font-size: 12px; color: var(--dim); }
+  .pct-pill {
+    margin-left: auto;
+    font-size: 11.5px;
+    font-weight: 600;
+    padding: 1px 8px;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--fg) 7%, transparent);
+    border: 1px solid var(--line);
+    color: var(--fg);
+  }
+  .pct-pill.warn {
+    color: var(--c-warn);
+    background: color-mix(in srgb, var(--c-warn) 14%, transparent);
+    border-color: color-mix(in srgb, var(--c-warn) 38%, transparent);
+  }
+  .pct-pill.danger {
+    color: var(--c-danger);
+    background: color-mix(in srgb, var(--c-danger) 15%, transparent);
+    border-color: color-mix(in srgb, var(--c-danger) 42%, transparent);
+  }
+
+  button {
+    font: inherit; font-size: 11.5px; color: var(--dim); cursor: pointer; white-space: nowrap;
+    background: transparent; border: 1px solid var(--line); border-radius: 6px;
+    padding: 3px 8px; display: inline-flex; align-items: center; gap: 4px;
+    transition: color .15s ease, border-color .15s ease, background .15s ease;
+  }
+  button:hover { color: var(--fg); border-color: color-mix(in srgb, var(--dim) 60%, transparent); background: var(--surface-hover); }
+  button.copied { color: var(--c-ok); border-color: color-mix(in srgb, var(--c-ok) 45%, transparent); }
+  button svg { width: 12px; height: 12px; flex: none; }
 
   /* grid: each dot is 1% of the context window */
-  .grid { display: grid; grid-template-columns: repeat(20, 1fr); gap: 4px; max-width: 320px; margin-bottom: 4px; }
-  .dot { aspect-ratio: 1; border-radius: 50%; background: var(--empty); }
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(20, 1fr);
+    gap: 4px;
+    width: 100%;
+  }
+  .dot {
+    aspect-ratio: 1;
+    border-radius: 50%;
+    background: var(--empty);
+    transition: transform .12s ease, opacity .15s ease, box-shadow .12s ease;
+  }
   .dot[data-segment] { cursor: help; }
-  .dot[data-segment]:hover, .dot:focus-visible { outline: 1px solid var(--fg); outline-offset: 2px; }
-  .dot.is-highlighted { box-shadow: 0 0 0 1px var(--fg); }
-  .row.is-highlighted { background: color-mix(in srgb, var(--fg) 8%, transparent); }
+  .dot[data-segment]:hover, .dot:focus-visible { outline: 1.5px solid var(--fg); outline-offset: 1.5px; transform: scale(1.18); }
+  .grid.has-highlight .dot:not(.is-highlighted) { opacity: .28; }
+  .dot.is-highlighted { transform: scale(1.12); box-shadow: 0 0 0 1px color-mix(in srgb, var(--fg) 75%, transparent); }
+
   .grid-tooltip {
     position: fixed;
-    z-index: 1;
+    z-index: 10;
     max-width: calc(100vw - 16px);
-    padding: 6px 8px;
+    padding: 6px 9px;
     border: 1px solid var(--line);
-    border-radius: 6px;
-    background: var(--background, #fafafa);
-    color: var(--foreground, #333);
-    box-shadow: 0 2px 8px #0002;
+    border-radius: 8px;
+    background: var(--popover, var(--card, var(--background, #202124)));
+    color: var(--popover-foreground, var(--fg));
+    box-shadow: 0 6px 20px rgba(0, 0, 0, .28);
+    backdrop-filter: blur(8px);
     font-size: 12px;
     pointer-events: none;
   }
   .grid-tooltip strong, .grid-tooltip span { display: block; }
-  .grid-tooltip span { font-variant-numeric: tabular-nums; }
-  .legend { font-size: 11px; color: var(--dim); margin-bottom: 4px; }
+  .grid-tooltip strong { font-weight: 600; margin-bottom: 1px; }
+  .grid-tooltip span { color: var(--dim); font-variant-numeric: tabular-nums; }
 
   /* sections */
-  section { border-top: 1px solid var(--line); margin-top: 14px; padding-top: 10px; }
-  h2 { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; color: var(--dim); margin: 0 0 6px; display: flex; justify-content: space-between; }
-  h2 .hint { text-transform: none; letter-spacing: 0; font-weight: 400; }
-  .note { font-size: 12px; color: var(--dim); margin: -2px 0 8px; }
-  .group + .group { margin-top: 8px; }
-  .row { display: grid; grid-template-columns: 10px 1fr auto 42px; align-items: center; gap: 8px; padding: 2.5px 0; }
-  .row .tok { text-align: right; }
-  .row .p { text-align: right; color: var(--dim); font-size: 12px; }
+  section { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--line); }
+  h2 {
+    font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .05em;
+    color: var(--dim); margin: 0 0 7px;
+    display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  }
+  h2 .hint { text-transform: none; letter-spacing: 0; font-weight: 400; font-size: 11px; opacity: .85; }
+  .note {
+    font-size: 11.5px; color: var(--dim);
+    margin: 0 0 8px; padding: 5px 8px;
+    border-radius: 6px; background: var(--surface);
+  }
+
+  /* category rows + mini progress bar */
+  .group + .group { margin-top: 6px; padding-top: 6px; border-top: 1px dashed color-mix(in srgb, var(--line) 80%, transparent); }
+  .row {
+    display: grid;
+    grid-template-columns: 10px 1fr auto 44px;
+    align-items: center;
+    column-gap: 8px;
+    row-gap: 3px;
+    padding: 4px 6px;
+    margin: 0 -6px;
+    border-radius: 6px;
+    transition: background .12s ease;
+    cursor: default;
+  }
+  .row:hover, .row.is-highlighted { background: var(--surface-hover); }
+  .row .label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .row .tok { text-align: right; font-size: 12.5px; }
+  .row .p { text-align: right; color: var(--dim); font-size: 11.5px; }
+  .bar-track {
+    grid-column: 2 / -1;
+    height: 2.5px;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--dim) 14%, transparent);
+    overflow: hidden;
+  }
+  .bar-fill {
+    height: 100%;
+    border-radius: 999px;
+    min-width: 2px;
+    transition: width .25s ease;
+  }
   .mark { width: 8px; height: 8px; border-radius: 50%; }
   .mark.sq { border-radius: 2px; }
   .mark.free { background: transparent; border: 1.5px solid var(--empty); }
 
-  .files li { display: grid; grid-template-columns: 1fr auto; gap: 8px; padding: 3px 0; }
-  .files .name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .files .dir { display: block; font-size: 11.5px; color: var(--dim); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; direction: rtl; text-align: left; }
-  .files .tok { color: var(--dim); font-size: 12px; align-self: start; }
-  ul { list-style: none; margin: 0; padding: 0; }
-  .ck-main { display: flex; justify-content: space-between; gap: 8px; }
-  .badge { font-size: 11px; color: #81c995; border: 1px solid color-mix(in srgb, #81c995 40%, transparent); border-radius: 999px; padding: 0 7px; white-space: nowrap; }
+  /* checkpoint card */
+  .ck-card {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 8px 10px;
+  }
+  .ck-main { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 12.5px; }
+  .ck-sub { margin-top: 4px; font-size: 11.5px; color: var(--dim); }
+  .badge {
+    font-size: 10.5px; font-weight: 500;
+    color: var(--c-ok);
+    background: color-mix(in srgb, var(--c-ok) 12%, transparent);
+    border: 1px solid color-mix(in srgb, var(--c-ok) 36%, transparent);
+    border-radius: 999px;
+    padding: 1px 7px;
+    white-space: nowrap;
+  }
+
+  /* collapsible file groups */
+  details.file-group { margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--line); }
+  details.file-group summary {
+    list-style: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: .04em;
+    color: var(--dim);
+    user-select: none;
+    padding: 2px 0;
+  }
+  details.file-group summary::-webkit-details-marker { display: none; }
+  details.file-group summary:hover { color: var(--fg); }
+  .sum-left { display: inline-flex; align-items: center; gap: 6px; }
+  .chev {
+    width: 12px; height: 12px;
+    transition: transform .15s ease;
+    opacity: .75;
+  }
+  details.file-group[open] .chev { transform: rotate(90deg); }
+  .count-pill {
+    font-size: 10.5px; font-weight: 500;
+    padding: 0 6px; border-radius: 999px;
+    background: var(--surface); border: 1px solid var(--line);
+    color: var(--dim);
+  }
+  .sum-right { font-weight: 400; font-size: 11px; opacity: .85; }
+
+  .files { list-style: none; margin: 6px 0 0; padding: 0; }
+  .files li {
+    display: grid; grid-template-columns: 1fr auto; gap: 8px;
+    padding: 4px 6px; margin: 0 -6px; border-radius: 6px;
+  }
+  .files li:hover { background: var(--surface-hover); }
+  .files .name { font-size: 12.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .files .dir {
+    display: block; font-size: 11px; color: var(--dim);
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    direction: rtl; text-align: left;
+  }
+  .files .tok { color: var(--dim); font-size: 11.5px; align-self: center; }
 
   .empty { margin: 48px 8px; text-align: center; color: var(--dim); }
-  footer { margin-top: 16px; font-size: 11px; color: var(--dim); display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+  footer {
+    margin-top: 16px; padding-top: 10px; border-top: 1px solid var(--line);
+    font-size: 11px; color: var(--dim);
+    display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap;
+  }
 </style>
 </head>
 <body>
@@ -147,6 +297,9 @@
     ['Estimated usage (awaiting generation)', '当前为估算值，等待模型回复'],
   ]);
   const READ_ERROR = '暂时无法读取上下文用量，面板会自动重试。';
+  const COPY_ICON = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5.5" y="5.5" width="8" height="8" rx="1.5"/><path d="M10.5 5.5V3.5a1.5 1.5 0 0 0-1.5-1.5H3.5A1.5 1.5 0 0 0 2 3.5V9a1.5 1.5 0 0 0 1.5 1.5h2"/></svg>';
+  const CHECK_ICON = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 8.5 6.5 11.5 12.5 4.5"/></svg>';
+  const CHEV_ICON = '<svg class="chev" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3.5 10.5 8 6 12.5"/></svg>';
   const COPY_LABEL = '复制文本';
   const SYSTEM = new Set(['system_prompt', 'system_tools', 'system_overhead']);
   const params = new URLSearchParams(location.search);
@@ -162,6 +315,8 @@
   let lastJson = '';
   let gridStats = new Map();
   let activeDot = null;
+  let activeSegment = null;
+  const openGroups = new Map();
 
   const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
@@ -209,22 +364,27 @@
     const segment = isConversation ? c.key : SYSTEM.has(c.key) ? 'system' : 'custom';
     const [label, color] = SEGMENT_INFO[segment];
     const shape = isConversation ? '' : ' sq';
-    return `<div class="row" data-segment="${segment}"><span class="mark${shape}" style="background:${color}"></span><span>${esc(CATEGORY_NAMES.get(c.key) || c.name || label)}</span>`
-      + `<span class="tok num">${fmtTok(c.tokens)}</span><span class="p num">${c.pct.toFixed(1)}%</span></div>`;
+    const pctClamped = Math.max(0, Math.min(100, c.pct || 0));
+    const bar = c.tokens > 0
+      ? `<div class="bar-track" aria-hidden="true"><div class="bar-fill" style="width:${pctClamped.toFixed(2)}%;background:${color}"></div></div>`
+      : '';
+    return `<div class="row" data-segment="${segment}"><span class="mark${shape}" style="background:${color}"></span>`
+      + `<span class="label">${esc(CATEGORY_NAMES.get(c.key) || c.name || label)}</span>`
+      + `<span class="tok num">${fmtTok(c.tokens)}</span><span class="p num">${c.pct.toFixed(1)}%</span>${bar}</div>`;
   }
 
   function categories(r) {
     const conv = r.categories.filter((c) => CONVERSATION.has(c.key));
     const rest = r.categories.filter((c) => !CONVERSATION.has(c.key));
     const limit = r.limit_tokens;
-    const freePct = limit ? (r.free_tokens / limit * 100).toFixed(1) : '0.0';
-    const free = `<div class="row" data-segment="free"><span class="mark free"></span><span class="dim">剩余空间</span>`
-      + `<span class="tok num">${fmtTok(r.free_tokens)}</span><span class="p num">${freePct}%</span></div>`;
+    const freePct = limit ? (r.free_tokens / limit * 100) : 0;
+    const free = `<div class="row" data-segment="free"><span class="mark free"></span><span class="label dim">剩余空间</span>`
+      + `<span class="tok num dim">${fmtTok(r.free_tokens)}</span><span class="p num">${freePct.toFixed(1)}%</span></div>`;
     const estimate = ESTIMATE_NOTES.get(r.heading);
     const note = estimate ? `<p class="note">${estimate}</p>` : '';
     const buffer = r.checkpoint_buffer
-      ? `<p class="note">检查点缓冲区 · ${fmtTok(r.checkpoint_buffer)} token（不计入占用）</p>` : '';
-    return `<section><h2>Token 用量</h2>${note}
+      ? `<p class="note" style="margin-top:8px;margin-bottom:0">检查点缓冲区 · ${fmtTok(r.checkpoint_buffer)} token（不计入占用）</p>` : '';
+    return `<section><h2>Token 分布 <span class="hint">悬停可联动高亮</span></h2>${note}
       <div class="group">${conv.map(categoryRow).join('')}</div>
       ${rest.length ? `<div class="group">${rest.map(categoryRow).join('')}</div>` : ''}
       <div class="group">${free}</div>${buffer}</section>`;
@@ -233,10 +393,10 @@
   function checkpoints(r) {
     const ck = r.checkpoint_view;
     if (!ck) return '';
-    const older = ck.historical ? `<div class="dim" style="font-size:12px">已有 ${ck.historical} 个历史检查点被摘要，未计入当前上下文</div>` : '';
+    const older = ck.historical ? `<div class="ck-sub">已有 ${ck.historical} 个历史检查点被摘要，未计入当前上下文</div>` : '';
     const detail = ck.active_text.replace(/^steps (\d+)–(\d+)$/, '步骤 $1–$2');
     return `<section><h2>检查点 <span class="hint">${ck.count} · /rewind</span></h2>
-      <div class="ck-main"><span>检查点 ${ck.active_number} · ${esc(detail)}</span><span class="badge">当前上下文</span></div>${older}</section>`;
+      <div class="ck-card"><div class="ck-main"><span>检查点 ${ck.active_number} · ${esc(detail)}</span><span class="badge">当前上下文</span></div>${older}</div></section>`;
   }
 
   function splitPath(path) {
@@ -248,41 +408,61 @@
     return { name, dir };
   }
 
-  function files(title, hint, items) {
+  function files(id, title, hint, items) {
     if (!items || !items.length) return '';
+    const isOpen = openGroups.has(id) ? openGroups.get(id) : items.length <= 6;
+    const totalTok = items.reduce((sum, f) => sum + (f.tokens > 0 ? f.tokens : 0), 0);
+    const sumRight = totalTok > 0 ? `${fmtTok(totalTok)} · ${hint}` : hint;
     const rows = items.map((f) => {
       const { name, dir } = splitPath(f.path);
       return `<li title="${esc(f.path)}"><span class="name">${esc(name)}<span class="dir">‎${esc(dir)}</span></span>`
         + `<span class="tok num">${f.tokens > 0 ? fmtTok(f.tokens) : ''}</span></li>`;
     }).join('');
-    return `<section><h2>${title} <span class="hint">${hint}</span></h2><ul class="files">${rows}</ul></section>`;
+    return `<details class="file-group" data-group="${id}"${isOpen ? ' open' : ''}>
+      <summary><span class="sum-left">${CHEV_ICON}<span>${title}</span><span class="count-pill num">${items.length}</span></span><span class="sum-right num">${sumRight}</span></summary>
+      <ul class="files">${rows}</ul>
+    </details>`;
+  }
+
+  function pctClass(pct) {
+    if (pct >= 85) return ' danger';
+    if (pct >= 70) return ' warn';
+    return '';
   }
 
   function render(r) {
     const focusedSegment = document.activeElement?.matches('.dot:focus-visible')
       ? document.activeElement.dataset.segment : null;
     const hoverRect = activeDot && !focusedSegment ? activeDot.getBoundingClientRect() : null;
-    clearGridHighlight();
+    clearHighlight();
     const limit = r.limit_tokens;
+    const pctBadge = limit
+      ? `<span class="pct-pill num${pctClass(r.used_pct)}">${r.used_pct.toFixed(1)}%</span>`
+      : '';
     main.innerHTML = `
-      <div class="top">
-        <div class="model"><span class="live on" title="自动刷新"></span>${esc(r.model === 'Unknown Model' ? '未知模型' : r.model)}</div>
-        <button id="copy" title="复制 CLI 格式的文本报告">${COPY_LABEL}</button>
+      <div class="hero">
+        <div class="top">
+          <div class="model" title="${esc(r.model === 'Unknown Model' ? '未知模型' : r.model)}"><span class="live on" title="自动刷新"></span>${esc(r.model === 'Unknown Model' ? '未知模型' : r.model)}</div>
+          <button id="copy" title="复制 CLI 格式的文本报告">${COPY_ICON}<span>${COPY_LABEL}</span></button>
+        </div>
+        <div class="usage">
+          <span class="big num">${fmtTok(r.used_tokens)}</span>
+          <span class="of">/ ${limit ? fmtTok(limit) : '未知'} token</span>
+          ${pctBadge}
+        </div>
+        ${grid(r)}
       </div>
-      <div class="usage">
-        <span class="big num">${fmtTok(r.used_tokens)}</span>
-        <span class="of">/ ${limit ? fmtTok(limit) : '未知'} token</span>
-        ${limit ? `<span class="pct num">${r.used_pct.toFixed(1)}%</span>` : ''}
-      </div>
-      ${grid(r)}
       ${categories(r)}
       ${checkpoints(r)}
-      ${files('知识文件', '/rules', r.knowledge_files)}
-      ${files('产物文件', '/artifact', r.artifact_files)}
-      ${files('技能文件', '/skill', r.skill_files)}
-      ${files('系统文件', '自动加载', r.system_files)}
-      <footer><span>相关命令 · /artifact · /skill · /rewind</span><span>更新于 ${esc(new Date(r.updatedAt).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' }))}</span></footer>`;
+      ${files('knowledge', '知识文件', '/rules', r.knowledge_files)}
+      ${files('artifact', '产物文件', '/artifact', r.artifact_files)}
+      ${files('skill', '技能文件', '/skill', r.skill_files)}
+      ${files('system', '系统文件', '自动加载', r.system_files)}
+      <footer><span>/artifact · /skill · /rewind</span><span class="num">更新于 ${esc(new Date(r.updatedAt).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' }))}</span></footer>`;
     document.getElementById('copy').addEventListener('click', copy);
+    main.querySelectorAll('details.file-group').forEach((el) => {
+      el.addEventListener('toggle', () => openGroups.set(el.dataset.group, el.open));
+    });
     if (focusedSegment) {
       main.querySelector(`.dot[tabindex][data-segment="${focusedSegment}"]`)?.focus({ preventScroll: true });
     } else if (hoverRect) {
@@ -292,7 +472,7 @@
   }
 
   function showMessage(text) {
-    clearGridHighlight();
+    clearHighlight();
     report = null;
     lastJson = '';
     main.innerHTML = `<p class="empty">${esc(text)}</p>`;
@@ -317,8 +497,12 @@
         ta.remove();
       }
     }
-    btn.textContent = copied ? '已复制' : '复制失败';
-    setTimeout(() => { btn.textContent = COPY_LABEL; }, 1500);
+    btn.classList.toggle('copied', copied);
+    btn.innerHTML = copied ? `${CHECK_ICON}<span>已复制</span>` : `${COPY_ICON}<span>复制失败</span>`;
+    setTimeout(() => {
+      btn.classList.remove('copied');
+      btn.innerHTML = `${COPY_ICON}<span>${COPY_LABEL}</span>`;
+    }, 1500);
   }
 
   async function refresh() {
@@ -353,11 +537,21 @@
     }
   }
 
-  function clearGridHighlight() {
-    if (!activeDot) return;
+  function highlightSegment(segment) {
+    if (activeSegment === segment) return;
+    clearHighlight();
+    activeSegment = segment;
+    main.querySelector('.grid')?.classList.add('has-highlight');
+    main.querySelectorAll(`[data-segment="${segment}"]`).forEach((entry) => entry.classList.add('is-highlighted'));
+  }
+
+  function clearHighlight() {
+    if (!activeDot && !activeSegment) return;
+    main.querySelector('.grid')?.classList.remove('has-highlight');
     main.querySelectorAll('.is-highlighted').forEach((entry) => entry.classList.remove('is-highlighted'));
     tooltip.hidden = true;
     activeDot = null;
+    activeSegment = null;
   }
 
   function showGridTooltip(dot) {
@@ -365,9 +559,8 @@
     const stats = gridStats.get(segment);
     if (!stats || dot === activeDot) return;
 
-    clearGridHighlight();
+    highlightSegment(segment);
     activeDot = dot;
-    main.querySelectorAll(`[data-segment="${segment}"]`).forEach((entry) => entry.classList.add('is-highlighted'));
     tooltipName.textContent = stats.name;
     tooltipValue.textContent = stats.value;
     tooltip.hidden = false;
@@ -385,24 +578,33 @@
   }
 
   main.addEventListener('pointerover', (event) => {
-    if (event.target.matches('.dot[data-segment]')) showGridTooltip(event.target);
+    const dot = event.target.closest('.dot[data-segment]');
+    if (dot) return showGridTooltip(dot);
+    const row = event.target.closest('.row[data-segment]');
+    if (row) {
+      tooltip.hidden = true;
+      activeDot = null;
+      highlightSegment(row.dataset.segment);
+    }
   });
   main.addEventListener('pointerout', (event) => {
-    if (event.target !== activeDot || event.relatedTarget?.matches('.dot[data-segment]')) return;
+    const relatedDot = event.relatedTarget?.closest?.('.dot[data-segment]');
+    const relatedRow = event.relatedTarget?.closest?.('.row[data-segment]');
+    if (relatedDot || relatedRow) return;
     if (document.activeElement?.matches('.dot:focus-visible')) showGridTooltip(document.activeElement);
-    else clearGridHighlight();
+    else clearHighlight();
   });
   main.addEventListener('focusin', (event) => {
     if (event.target.matches('.dot[data-segment]')) showGridTooltip(event.target);
   });
   main.addEventListener('focusout', (event) => {
-    if (event.target === activeDot) clearGridHighlight();
+    if (event.target === activeDot) clearHighlight();
   });
   document.addEventListener('keydown', (event) => {
-    if (event.key === 'Escape') clearGridHighlight();
+    if (event.key === 'Escape') clearHighlight();
   });
-  window.addEventListener('resize', clearGridHighlight);
-  window.addEventListener('scroll', clearGridHighlight, { passive: true });
+  window.addEventListener('resize', clearHighlight);
+  window.addEventListener('scroll', clearHighlight, { passive: true });
 
   document.addEventListener('visibilitychange', refresh);
 

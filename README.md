@@ -1,12 +1,20 @@
 # Antigravity Plugins
 
-用于独立版 Google Antigravity App 的插件。
+用于独立版 Google Antigravity App 的插件合集。
+
+## 插件列表
+
+| 插件 | 目录 | 类型 | 核心功能 | 入口 / 生效方式 |
+| :--- | :--- | :--- | :--- | :--- |
+| **上下文用量** | `plugins/desktop-context/` | 侧边栏扩展 | 中文展示模型名称、上下文点阵图、分类 Token 占用、检查点与上下文文件，支持悬停联动高亮和一键复制 CLI 文本报告 | 会话右侧 **概览 → 扩展 → 上下文用量** |
+| **语言包管理** | `plugins/language-packs/` | 侧边栏扩展 | 内置简/繁体词库，支持一键切换、导入 JSON 热更新词库（约 3 秒生效）与恢复基础词库 | 会话右侧 **概览 → 扩展 → 语言包管理** |
+| **进度播报与节奏控制** | `plugins/progress-updates/` | 全局规则 | 让 Agent 按关键里程碑用引用块弱化播报进展，常规步骤自主推进，仅在分叉/高风险/阻塞节点暂停确认 | 放入全局插件目录后下一轮对话自动生效 |
+
+---
 
 ## 上下文用量
 
-`plugins/desktop-context/` 收录了上游 [antigravity-desktop-context](https://github.com/dimitr-io/antigravity-desktop-context) 的源码、资源与测试，基于 [`8f7e92b`](https://github.com/dimitr-io/antigravity-desktop-context/tree/8f7e92b007543ec4346337b6f92e7bb5515e3e54)，遵循 [MIT 许可证](plugins/desktop-context/LICENSE)。
-
-面板以中文显示模型名称、上下文占用图、分类用量、检查点和上下文文件，并支持复制原始 CLI 格式的文本报告。将指针移到圆点上，或用 Tab 聚焦，可查看该颜色对应的用量和占比。百分比以模型的原生上下文窗口为分母。
+`plugins/desktop-context/` 提供中文上下文用量面板，显示模型名称、上下文占用图、分类用量、检查点和上下文文件，并支持复制原始 CLI 格式的文本报告。将指针移到圆点上，或用 Tab 聚焦，可查看该颜色对应的用量和占比。百分比以模型的原生上下文窗口为分母。
 
 ### 安装
 
@@ -19,7 +27,7 @@ cp -R plugins/desktop-context ~/.gemini/config/plugins/
 
 打开 **个性化定制 → 已安装**，查看 **上下文用量**。在会话右侧打开 **概览 → 扩展 → 上下文用量**。如果界面仍显示旧插件，关闭旧标签页后重新进入「已安装」。
 
-详细说明与测试命令见 [上游 README](plugins/desktop-context/README.md)。
+详细说明与测试命令见 [插件说明](plugins/desktop-context/README.md)。
 
 ## 语言包管理
 
