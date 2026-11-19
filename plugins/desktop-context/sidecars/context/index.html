@@ -101,19 +101,21 @@
   .grid {
     display: grid;
     grid-template-columns: repeat(20, 1fr);
-    gap: 4px;
+    gap: 5px;
     width: 100%;
+    max-width: 340px;
   }
   .dot {
     aspect-ratio: 1;
     border-radius: 50%;
     background: var(--empty);
-    transition: transform .12s ease, opacity .15s ease, box-shadow .12s ease;
+    transition: transform .12s ease, opacity .15s ease, background-color .15s ease;
   }
-  .dot[data-segment] { cursor: help; }
-  .dot[data-segment]:hover, .dot:focus-visible { outline: 1.5px solid var(--fg); outline-offset: 1.5px; transform: scale(1.18); }
-  .grid.has-highlight .dot:not(.is-highlighted) { opacity: .28; }
-  .dot.is-highlighted { transform: scale(1.12); box-shadow: 0 0 0 1px color-mix(in srgb, var(--fg) 75%, transparent); }
+  .dot[data-segment] { cursor: pointer; }
+  .dot[data-segment]:hover { transform: scale(1.22); }
+  .dot:focus-visible { outline: 1.5px solid color-mix(in srgb, var(--fg) 55%, transparent); outline-offset: 2px; }
+  .grid.has-highlight .dot:not(.is-highlighted) { opacity: .22; }
+  .dot.is-highlighted[data-segment="free"] { background: color-mix(in srgb, var(--dim) 42%, transparent); }
 
   .grid-tooltip {
     position: fixed;
@@ -568,13 +570,12 @@
     const anchor = dot.getBoundingClientRect();
     const box = tooltip.getBoundingClientRect();
     const chart = dot.parentElement.getBoundingClientRect();
-    const side = chart.right + 8;
-    const besideChart = side + box.width <= innerWidth - 8;
-    const left = besideChart ? side : anchor.left + (anchor.width - box.width) / 2;
+    const left = anchor.left + (anchor.width - box.width) / 2;
+    const below = chart.bottom + 8;
     const above = chart.top - box.height - 8;
-    const top = besideChart ? anchor.top : above >= 8 ? above : chart.bottom + 8;
+    const top = below + box.height <= innerHeight - 8 ? below : Math.max(8, above);
     tooltip.style.left = `${Math.max(8, Math.min(left, innerWidth - box.width - 8))}px`;
-    tooltip.style.top = `${Math.max(8, Math.min(top, innerHeight - box.height - 8))}px`;
+    tooltip.style.top = `${top}px`;
   }
 
   main.addEventListener('pointerover', (event) => {
