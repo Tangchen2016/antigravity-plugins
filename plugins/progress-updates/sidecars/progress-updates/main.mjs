@@ -2,6 +2,10 @@ import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { Response, SidecarApp } from 'sidecar_sdk';
+import { createSelfUpdater } from './self_update.mjs';
+
+const pluginDir = fileURLToPath(new URL('../../', import.meta.url));
+const updater = createSelfUpdater({ pluginDir });
 
 const rulesPath = fileURLToPath(new URL('../../rules/AGENTS.md', import.meta.url));
 const pagePath = new URL('./index.html', import.meta.url);
@@ -97,6 +101,7 @@ function detectActiveMode() {
 function getState() {
   return {
     activeMode: detectActiveMode(),
+    pluginVersion: updater.localInfo().localVersion,
     modes: MODES.map(({ id, title, badge, summary }) => ({ id, title, badge, summary })),
   };
 }
@@ -105,6 +110,14 @@ const app = new SidecarApp();
 app.page('/', () => new Response(readFileSync(pagePath, 'utf8'), { contentType: 'text/html; charset=utf-8' }));
 
 app.api('/api/state', () => getState());
+app.api('/api/version', async ({ force = false } = {}) => updater.check({ force }));
+app.api('/api/self-update', async () => {
+  try {
+    return await updater.update();
+  } catch (err) {
+    return { error: err?.message || '更新失败，请稍后重试。' };
+  }
+});
 app.api('/api/set-mode', ({ mode } = {}) => {
   const target = MODES.find((m) => m.id === mode);
   if (!target) return { error: '未知的播报模式。' };

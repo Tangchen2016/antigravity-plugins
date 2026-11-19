@@ -5,6 +5,7 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { Response, SidecarApp } from 'sidecar_sdk';
 import { createPackManager, PackError } from './packs.mjs';
+import { createSelfUpdater } from './self_update.mjs';
 
 const require = createRequire(import.meta.url);
 const { readAsarLayout } = require('../../runtime/src/asar_patcher.js');
@@ -104,8 +105,11 @@ function openAppManagementSettings() {
   });
 }
 
+const pluginDir = fileURLToPath(new URL('../../', import.meta.url));
+const updater = createSelfUpdater({ pluginDir });
+
 function fullState() {
-  return { ...manager.state(), runtime: getRuntimeStatus() };
+  return { ...manager.state(), runtime: getRuntimeStatus(), pluginVersion: updater.localInfo().localVersion };
 }
 
 const app = new SidecarApp();
@@ -130,6 +134,8 @@ const actions = {
     await openAppManagementSettings();
     return fullState();
   },
+  version: ({ force = false } = {}) => updater.check({ force }),
+  'self-update': () => updater.update(),
 };
 
 for (const [name, action] of Object.entries(actions)) {

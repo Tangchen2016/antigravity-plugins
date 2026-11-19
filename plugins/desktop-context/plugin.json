@@ -2,6 +2,6 @@
   "name": "desktop-context",
   "title": "上下文用量",
   "description": "在侧面板查看当前会话的上下文占用、会话累计 Token 消耗、分类用量、检查点和上下文文件。",
-  "version": "1.0.6",
+  "version": "1.0.7",
   "logo": "assets/logo.svg"
 }

@@ -6,7 +6,7 @@
     {
       "name": "desktop-context",
       "displayName": "上下文用量",
-      "version": "1.0.6",
+      "version": "1.0.7",
       "type": "侧边栏扩展",
       "description": "中文展示模型名称、上下文点阵图、压缩阈值预警、会话累计与按模型拆分的 Token/缓存消耗，支持技能与 MCP 服务的完整展示与一键启停。",
       "path": "plugins/desktop-context",
@@ -15,7 +15,7 @@
     {
       "name": "language-packs",
       "displayName": "语言包管理",
-      "version": "0.2.2",
+      "version": "0.2.3",
       "type": "侧边栏扩展",
       "description": "自包含中文汉化与语言包管理扩展，面板内一键安装/卸载监听运行时，支持简体/繁体/原版英文 3 秒热切换。",
       "path": "plugins/language-packs",
@@ -24,7 +24,7 @@
     {
       "name": "progress-updates",
       "displayName": "进度播报与节奏控制",
-      "version": "0.3.1",
+      "version": "0.3.2",
       "type": "规则 + 侧边栏",
       "description": "自带侧边栏设置面板，按节点克制播报（≤30 字）且支持一键切换「聊天极简 TodoList / Artifact 原地看板 / 经典里程碑」三种模式。",
       "path": "plugins/progress-updates",
@@ -33,7 +33,7 @@
     {
       "name": "plugin-market",
       "displayName": "插件市场",
-      "version": "0.1.3",
+      "version": "0.1.4",
       "type": "侧边栏扩展",
       "description": "在侧边栏浏览插件市场、对比版本并管理本机已安装插件，支持一键安装、更新、启用、停用与卸载。",
       "path": "plugins/plugin-market",

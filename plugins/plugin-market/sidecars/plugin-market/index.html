@@ -219,7 +219,7 @@
   <div id="self-footer" class="self-footer" hidden>
     <div class="self-footer-info">
       <span id="self-footer-text"></span>
-      <a id="self-source-link" class="source-link" href="#" target="_blank" rel="noopener noreferrer" hidden>源码 ↗</a>
+      <a id="self-source-link" class="source-link" href="#" target="_blank" rel="noopener noreferrer" hidden>详情 ↗</a>
     </div>
     <button id="self-footer-btn" class="btn ghost" type="button">检查/重装</button>
   </div>
@@ -333,7 +333,7 @@
         <div class="card-foot">
           <div class="meta-wrap">
             <span class="meta">${esc(p.name)}</span>
-            ${p.sourceUrl ? `<a class="source-link" href="${esc(p.sourceUrl)}" target="_blank" rel="noopener noreferrer" data-open-url="${esc(p.sourceUrl)}" title="${esc(p.sourceUrl)}">源码 ↗</a>` : ''}
+            ${p.sourceUrl ? `<a class="source-link" href="${esc(p.sourceUrl)}" target="_blank" rel="noopener noreferrer" data-open-url="${esc(p.sourceUrl)}" title="${esc(p.sourceUrl)}">详情 ↗</a>` : ''}
           </div>
           <div class="actions">${updateBtn}${toggleBtn}${uninstallBtn}</div>
         </div>
@@ -364,7 +364,7 @@
         <div class="card-foot">
           <div class="meta-wrap">
             <span class="meta">${esc(p.repo)}</span>
-            ${p.sourceUrl ? `<a class="source-link" href="${esc(p.sourceUrl)}" target="_blank" rel="noopener noreferrer" data-open-url="${esc(p.sourceUrl)}" title="${esc(p.sourceUrl)}">源码 ↗</a>` : ''}
+            ${p.sourceUrl ? `<a class="source-link" href="${esc(p.sourceUrl)}" target="_blank" rel="noopener noreferrer" data-open-url="${esc(p.sourceUrl)}" title="${esc(p.sourceUrl)}">详情 ↗</a>` : ''}
           </div>
           <div class="actions">
             <button class="${btnCls}" data-act="install" data-name="${esc(p.name)}" data-repo="${esc(p.repo)}" data-branch="${esc(p.branch)}" data-path="${esc(p.path)}" ${busy ? 'disabled' : ''}>${btnText}</button>
@@ -390,10 +390,25 @@
     selfUpdateBtn.disabled = busy;
     selfFooterBtn.disabled = busy;
     if (!state) return;
-    updateAllBtn.hidden = !state.updateCount;
-    updateAllBtn.textContent = `全部更新 (${state.updateCount})`;
+    const regularInstalled = (state.installed || []).filter((p) => p.name !== 'plugin-market');
+    const regularMarket = (state.market || []).filter((p) => p.name !== 'plugin-market');
+    const legacySelf = (state.installed || []).find((p) => p.name === 'plugin-market');
+    const selfInfo = state.selfInfo || (legacySelf ? {
+      name: 'plugin-market',
+      localVersion: legacySelf.version,
+      remoteVersion: legacySelf.remoteVersion || state.selfUpdate?.remoteVersion || null,
+      hasUpdate: Boolean(legacySelf.hasUpdate || state.selfUpdate),
+      repo: legacySelf.repo || state.selfUpdate?.repo || 'Tangchen2016/antigravity-plugins',
+      branch: legacySelf.branch || state.selfUpdate?.branch || 'main',
+      path: legacySelf.remotePath || state.selfUpdate?.path || 'plugins/plugin-market',
+      sourceUrl: legacySelf.sourceUrl || null,
+    } : null);
 
-    const selfInfo = state.selfInfo;
+    const updatable = regularInstalled.filter((p) => p.hasUpdate);
+    const regularUpdateCount = updatable.length;
+    updateAllBtn.hidden = !regularUpdateCount;
+    updateAllBtn.textContent = `全部更新 (${regularUpdateCount})`;
+
     selfVerEl.hidden = !selfInfo?.localVersion;
     if (selfInfo?.localVersion) selfVerEl.textContent = `v${selfInfo.localVersion}`;
 
@@ -417,23 +432,25 @@
       } else {
         selfSourceLink.hidden = true;
       }
-      selfFooterBtn.className = selfInfo.hasUpdate ? 'btn primary' : 'btn ghost';
-      selfFooterBtn.textContent = selfInfo.hasUpdate ? `更新至 v${selfInfo.remoteVersion}` : '重新安装';
+      selfFooterBtn.hidden = !selfInfo.hasUpdate;
+      if (selfInfo.hasUpdate) {
+        selfFooterBtn.className = 'btn primary';
+        selfFooterBtn.textContent = `更新至 v${selfInfo.remoteVersion}`;
+      }
     }
 
-    const updatable = state.installed.filter((p) => p.hasUpdate);
     updateBannerEl.hidden = updatable.length === 0;
     if (updatable.length > 0) {
       const names = updatable.map((p) => `${p.displayName} v${p.remoteVersion}`).join('、');
       updateBannerText.innerHTML = `<strong>发现 ${updatable.length} 个插件更新：</strong>${esc(names)}`;
     }
 
-    cntInstalled.textContent = state.updateCount > 0 ? `${state.installed.length} · ${state.updateCount}可更` : String(state.installed.length);
-    cntInstalled.classList.toggle('warn', state.updateCount > 0);
-    cntMarket.textContent = state.updateCount > 0 ? `${state.market.length} · ${state.updateCount}可更` : String(state.market.length);
-    cntMarket.classList.toggle('warn', state.updateCount > 0);
+    cntInstalled.textContent = regularUpdateCount > 0 ? `${regularInstalled.length} · ${regularUpdateCount}可更` : String(regularInstalled.length);
+    cntInstalled.classList.toggle('warn', regularUpdateCount > 0);
+    cntMarket.textContent = regularUpdateCount > 0 ? `${regularMarket.length} · ${regularUpdateCount}可更` : String(regularMarket.length);
+    cntMarket.classList.toggle('warn', regularUpdateCount > 0);
 
-    const items = (tab === 'installed' ? state.installed : state.market).filter(matches);
+    const items = (tab === 'installed' ? regularInstalled : regularMarket).filter(matches);
     listEl.innerHTML = tab === 'installed' ? renderInstalled(items) : renderMarket(items);
     renderSources(state.sources);
   }
@@ -449,7 +466,31 @@
   searchEl.addEventListener('input', () => { query = searchEl.value.trim(); render(); });
   refreshBtn.addEventListener('click', () => run('state', { force: true }, '正在刷新插件列表与远端目录…', '列表已刷新。'));
   const doUpdateAll = () => run('update-all', {}, '正在更新全部有新版本的插件…', '全部插件已更新到最新版本。');
-  const doUpdateSelf = () => run('update-self', {}, '正在更新插件市场自身…', '插件市场已更新，关闭并重新打开侧边栏面板即可生效。');
+  const doUpdateSelf = async () => {
+    if (busy) return;
+    busy = true;
+    render();
+    setFeedback('正在更新插件市场自身…', false);
+    try {
+      try {
+        state = await api('update-self', {});
+      } catch {
+        const s = state?.selfUpdate || state?.selfInfo || {};
+        state = await api('install', {
+          name: 'plugin-market',
+          repo: s.repo || 'Tangchen2016/antigravity-plugins',
+          branch: s.branch || 'main',
+          path: s.path || 'plugins/plugin-market',
+        });
+      }
+      setFeedback('插件市场已更新，请在「个性化定制」中停用再启用插件市场（或重启 Antigravity）即可生效。', false);
+    } catch (err) {
+      setFeedback(err.message || '操作失败', true);
+    } finally {
+      busy = false;
+      render();
+    }
+  };
   updateAllBtn.addEventListener('click', doUpdateAll);
   bannerUpdateAllBtn.addEventListener('click', doUpdateAll);
   selfUpdateBtn.addEventListener('click', doUpdateSelf);

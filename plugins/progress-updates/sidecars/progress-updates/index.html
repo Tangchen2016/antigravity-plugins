@@ -27,7 +27,17 @@
       -webkit-font-smoothing: antialiased;
     }
     main { max-inline-size: 620px; padding: 14px 16px 20px; }
-    h1 { margin: 0 0 4px; font-size: 17px; font-weight: 650; }
+    .title-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 4px; }
+    h1 { margin: 0; font-size: 17px; font-weight: 650; }
+    .ver-badge { font-size: 11.5px; color: var(--dim); font-variant-numeric: tabular-nums; }
+    .update-btn {
+      font: inherit; font-size: 11px; font-weight: 500; cursor: pointer; white-space: nowrap;
+      padding: 2px 8px; border-radius: 6px;
+      color: #f9ab00;
+      background: color-mix(in srgb, #f9ab00 14%, transparent);
+      border: 1px solid color-mix(in srgb, #f9ab00 38%, transparent);
+    }
+    .update-btn:disabled { opacity: .5; cursor: default; }
     .sub { margin: 0 0 14px; font-size: 12.5px; color: var(--dim); }
     .cards { display: flex; flex-direction: column; gap: 8px; }
     .card {
@@ -66,7 +76,11 @@
 </head>
 <body>
 <main>
-  <h1>进度播报模式</h1>
+  <div class="title-row">
+    <h1>进度播报模式</h1>
+    <span id="plugin-ver" class="ver-badge" hidden></span>
+    <button type="button" id="plugin-update" class="update-btn" hidden>更新</button>
+  </div>
   <p class="sub">切换后会立即更新全局规则，无需重启，下一轮对话直接生效。</p>
   <div id="cards" class="cards"></div>
   <p id="feedback" class="feedback" hidden></p>
@@ -75,6 +89,8 @@
 (() => {
   const cardsEl = document.getElementById('cards');
   const feedbackEl = document.getElementById('feedback');
+  const pluginVerEl = document.getElementById('plugin-ver');
+  const pluginUpdateBtn = document.getElementById('plugin-update');
   let state = null;
   let busy = false;
 
@@ -133,7 +149,43 @@
     if (btn) selectMode(btn.dataset.mode);
   });
 
-  api('state').then((data) => { state = data; render(); }).catch((err) => setFeedback(err.message, true));
+  function renderVersion(info) {
+    if (!info) return;
+    if (info.localVersion) {
+      pluginVerEl.hidden = false;
+      pluginVerEl.textContent = `v${info.localVersion}`;
+    }
+    pluginUpdateBtn.hidden = !info.hasUpdate;
+    if (info.hasUpdate) {
+      pluginUpdateBtn.textContent = `更新 v${info.remoteVersion}`;
+    }
+  }
+
+  pluginUpdateBtn.addEventListener('click', async () => {
+    if (pluginUpdateBtn.disabled) return;
+    pluginUpdateBtn.disabled = true;
+    pluginUpdateBtn.textContent = '更新中…';
+    setFeedback('正在更新进度播报插件…');
+    try {
+      const info = await api('self-update');
+      renderVersion(info);
+      setFeedback(`已更新至 v${info.localVersion}，在「个性化定制」中停用再启用（或重启 Antigravity）即可生效。`);
+    } catch (err) {
+      setFeedback(err.message || '更新失败，请稍后重试。', true);
+    } finally {
+      pluginUpdateBtn.disabled = false;
+    }
+  });
+
+  api('state').then((data) => {
+    state = data;
+    if (data.pluginVersion) {
+      pluginVerEl.hidden = false;
+      pluginVerEl.textContent = `v${data.pluginVersion}`;
+    }
+    render();
+  }).catch((err) => setFeedback(err.message, true));
+  api('version').then(renderVersion).catch(() => {});
 })();
 </script>
 </body>

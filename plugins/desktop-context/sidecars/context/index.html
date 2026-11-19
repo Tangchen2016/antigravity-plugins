@@ -43,7 +43,20 @@
   ::-webkit-scrollbar-thumb:hover { background-color: color-mix(in srgb, var(--dim) 55%, transparent); }
 
   /* preload.js zeroes the body's padding, so the page padding lives here */
-  main { padding: 12px 14px 18px; }
+  .panel-header {
+    display: flex; align-items: center; justify-content: space-between; gap: 8px;
+    padding: 12px 14px 0;
+  }
+  .panel-title { display: flex; align-items: baseline; gap: 6px; }
+  .panel-title h1 { margin: 0; font-size: 15px; font-weight: 650; }
+  .ver-badge { font-size: 11px; color: var(--dim); font-variant-numeric: tabular-nums; }
+  .update-btn {
+    padding: 2px 8px; font-size: 11px; font-weight: 500;
+    color: var(--c-warn);
+    background: color-mix(in srgb, var(--c-warn) 14%, transparent);
+    border-color: color-mix(in srgb, var(--c-warn) 38%, transparent);
+  }
+  main { padding: 10px 14px 18px; }
   .dim { color: var(--dim); }
   .num { font-variant-numeric: tabular-nums; }
 
@@ -596,6 +609,13 @@
 </style>
 </head>
 <body>
+<header class="panel-header">
+  <div class="panel-title">
+    <h1>上下文用量</h1>
+    <span id="plugin-ver" class="ver-badge" hidden></span>
+  </div>
+  <button type="button" id="plugin-update" class="update-btn" hidden>更新</button>
+</header>
 <main id="main"><p class="empty">正在读取上下文用量…</p></main>
 <div id="grid-tooltip" class="grid-tooltip" aria-hidden="true" hidden>
   <strong></strong>
@@ -1225,7 +1245,57 @@
 
   document.addEventListener('visibilitychange', refresh);
 
+  const pluginVerEl = document.getElementById('plugin-ver');
+  const pluginUpdateBtn = document.getElementById('plugin-update');
+
+  function renderPluginVersion(info) {
+    if (!info) return;
+    if (info.localVersion) {
+      pluginVerEl.hidden = false;
+      pluginVerEl.textContent = `v${info.localVersion}`;
+    }
+    pluginUpdateBtn.hidden = !info.hasUpdate;
+    if (info.hasUpdate) {
+      pluginUpdateBtn.textContent = `更新 v${info.remoteVersion}`;
+    }
+  }
+
+  async function checkPluginVersion() {
+    if (!window.sidecar?.fetch) return;
+    try {
+      const res = await window.sidecar.fetch('/api/version', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: '{}',
+      });
+      const info = await res.json();
+      if (!info.error) renderPluginVersion(info);
+    } catch { /* ignore */ }
+  }
+
+  pluginUpdateBtn.addEventListener('click', async () => {
+    if (pluginUpdateBtn.disabled || !window.sidecar?.fetch) return;
+    pluginUpdateBtn.disabled = true;
+    pluginUpdateBtn.textContent = '更新中…';
+    try {
+      const res = await window.sidecar.fetch('/api/self-update', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: '{}',
+      });
+      const info = await res.json();
+      if (info.error) throw new Error(info.error);
+      renderPluginVersion(info);
+      showToast(`已更新至 v${info.localVersion}，停用再启用插件即可生效`);
+    } catch (err) {
+      showToast(err.message || '更新失败，请稍后重试');
+    } finally {
+      pluginUpdateBtn.disabled = false;
+    }
+  });
+
   async function start() {
+    checkPluginVersion();
     if (window.sidecar && window.sidecar.getWorkspaceUris) {
       const uris = await window.sidecar.getWorkspaceUris();
       workspace = uris[0] || '';

@@ -1,85 +1,62 @@
-# antigravity-desktop-context
+# 上下文用量 (`desktop-context`)
 
-A **Context Usage** side panel for the **Antigravity 2.0 desktop app**, based on the Antigravity CLI's `/context` command.
+用于 **Google Antigravity** 桌面端的中文上下文用量侧边栏面板，基于 Antigravity CLI `/context` 同源数据解析，实时呈现当前会话的上下文占用、压缩水位预警、会话累计与按模型拆分的 Token/缓存消耗，以及技能与 MCP 服务的可搜索启停管理。
 
-In contrast to other context monitors, which estimate usage from the conversation's transcript (roughly one token per four characters) and sort it into categories of their own, this panel reads the token breakdown that Antigravity records for every model call, the same data the CLI's `/context` uses. The accounting is ported from the CLI binary itself, so the categories, totals, checkpoints and files match `agy /context` on the same conversation, and the context window and model name come live from the app's model catalog.
+![上下文用量面板效果图](../../docs/images/desktop-context.png)
 
-![The agy CLI's built-in /context next to the Context Usage panel in the Antigravity 2.0 desktop app, on the same conversation](docs/img/cli-vs-panel.png)
+## 核心特性
 
-## Installation
+- **精确同源统计**：直接只读解析当前会话数据库（`~/.gemini/antigravity/conversations/<id>.db`）并实时拉取模型目录，分类、总量、检查点与上下文文件与 `agy /context` 保持一致。
+- **点阵图与压缩阈值预警**：100 格点阵图直观展示系统、用户消息、智能体回复、工具调用、自定义配置与剩余空间占比；上下文水位 `≥ 70%` 琥珀预警、`≥ 85%` 红色告警，支持悬停圆点与分类行双向高亮联动。
+- **会话累计与按模型拆分**：统计整场会话的输入/输出 Token 与缓存命中消耗，并支持按模型维度拆分查看。
+- **技能与 MCP 服务管理**：汇总展示全局、工作区与插件来源的技能与 MCP 服务，支持通过**可搜索弹窗**快速检索并一键启用 / 停用。
+- **一键复制文本报告**：支持导出与 `agy /context` 一致的纯文本报告。
 
-Requires the Antigravity 2.0 desktop app and Python 3 on your `PATH` (`python`, `py` or `python3`).
+## 安装方式
 
-1. Clone this repository into your Antigravity plugins folder:
-
-   ```bash
-   # macOS / Linux
-   git clone https://github.com/dimitr-io/antigravity-desktop-context.git ~/.gemini/config/plugins/desktop-context
-   ```
-
-   ```powershell
-   # Windows (PowerShell)
-   git clone https://github.com/dimitr-io/antigravity-desktop-context.git "$HOME\.gemini\config\plugins\desktop-context"
-   ```
-
-2. Restart Antigravity, open **Customizations → Installed**, and turn **Context Usage** on.
-3. Open a conversation and open **Context Usage** in the right-side panel.
-
-To update, run `git pull` inside that folder, then turn the plugin off and on again.
-
-## What it shows
-
-The report follows the CLI's `/context` (`cli/model.ContextModel` in agy 1.4.4), ported from the CLI binary:
-
-- **Header**: model name, used/limit tokens and percentage.
-- **Usage grid**: each dot is 1% of the context window. Segments, in order: system (prompt + tools + overhead), user messages, agent responses, tool calls, customizations, then free space. Every non-empty segment gets at least one dot.
-- **Token usage**: `User messages`, `Agent responses` and `Tool calls` always show; `System messages`, `System prompt`, `System tools`, `System overhead`, `Rules`, `Skills`, `Subagents`, `Legacy workflows`, `Workflows`, `Plugins` and `MCP tools` show only when non-zero. Then `Free space`, and the `Checkpoint buffer` (tokens in checkpoint steps, not counted in usage).
-- **Before the first reply, or right after a compaction**: per-step estimates, like the CLI ("Estimated usage (awaiting generation)" / "Estimated after compaction · updates next turn").
-- **Checkpoints**: the active checkpoint and how many older ones were summarized.
-- **Files**: knowledge and artifact files written by the agent, skill files it opened (with the tokens those steps cost), and the auto-loaded system folders, including the workspace's `.agents/` folders.
-
-
-## How it works
-
-```
-plugin.json               plugin manifest
-sidecars/context/
-  sidecar.json            registers the side panel (runs main.mjs with Antigravity's Node)
-  main.mjs                backend: serves the panel and /api/report
-  index.html              the panel (inline CSS and JS)
-  context_report.py       the parser
-tests/                    parser tests
-```
-
-- The panel gets the open conversation's ID and workspace folders from Antigravity's sidecar bridge and asks the backend for a report every 3 seconds.
-- The backend runs `context_report.py --json` on the conversation's database (`~/.gemini/antigravity/conversations/<id>.db`, opened read-only), but only when the database has changed. Otherwise it returns the cached report.
-- On startup and every 10 minutes, the backend asks the app's language server for its model catalog (`GetAvailableModels`), so the context window and model name come from the app, like in the CLI. If that call fails, the parser falls back to a built-in table (Gemini 1,048,576 · Claude 5.5 1,000,000 · Claude 4.6 250,000 · GPT-OSS 131,072 tokens).
-
-The context window shown is the model's native window, as in the CLI. Each request also has a smaller budget (usually 256,000 tokens): once a conversation passes it, the app trims older history even though the window is larger ([details](https://github.com/lmxxf/antigravity-context-fix)). The parser's `--json` output reports it as `request_budget_tokens`.
-
-## Command line and testing
-
-The parser also runs on its own. It prints the CLI's text report:
+需要本机 `PATH` 中包含 Python 3.10+。可在 **插件市场** 中直接点击安装，或命令行安装：
 
 ```bash
-# The most recently active desktop conversation
-python sidecars/context/context_report.py
-
-# A specific conversation, with its workspace
-python sidecars/context/context_report.py --conversation-id <uuid> --workspace /path/to/workspace
-
-# Any conversation database, e.g. one from the agy CLI; --json for structured output
-python sidecars/context/context_report.py --db ~/.gemini/antigravity-cli/conversations/<uuid>.db
+curl -fsSL https://raw.githubusercontent.com/Tangchen2016/antigravity-plugins/main/install.sh | bash -s -- desktop-context
 ```
 
-The test suite needs only the Python standard library. It builds synthetic conversation databases and checks the report end to end:
+安装完成后，在会话右侧打开 **概览 → 扩展 → 上下文用量** 即可使用（首次安装如未立即出现，重启一次 Antigravity 即可）。
+
+## 目录结构
+
+```text
+plugins/desktop-context/
+├── plugin.json                        # 插件清单
+├── README.md                          # 插件说明
+├── LICENSE                            # MIT 开源协议
+├── assets/logo.svg                    # 插件图标
+├── sidecars/context/
+│   ├── sidecar.json                   # Sidecar 注册配置
+│   ├── main.mjs                       # Sidecar 后端（报告缓存、模型目录、技能/MCP 管理）
+│   ├── context_report.py              # 会话数据库解析器（可独立命令行运行）
+│   └── index.html                     # 侧边栏界面
+└── tests/
+    └── test_context_report.py         # 解析器单元测试
+```
+
+## 命令行与测试
+
+解析器支持脱离侧边栏单独运行：
 
 ```bash
-python -m unittest discover tests
+# 解析最近活跃的桌面端会话
+python3 plugins/desktop-context/sidecars/context/context_report.py
+
+# 解析指定会话并输出 JSON
+python3 plugins/desktop-context/sidecars/context/context_report.py --conversation-id <uuid> --workspace /path/to/workspace --json
 ```
 
-To compare against the real CLI, open a conversation in `agy`, run `/context`, then run the parser with `--db` on the same conversation. The CLI logs the open conversation's ID in `~/.gemini/antigravity-cli/cli.log`, on the latest `Starting conversation update stream for <uuid>` line. The categories, totals, checkpoints and file lists should match.
+运行单元测试（仅依赖 Python 标准库）：
 
-## License
+```bash
+python3 -m unittest discover plugins/desktop-context/tests
+```
 
-[MIT](LICENSE)
+## 致谢与协议
+
+本插件基于开源项目 [dimitr-io/antigravity-desktop-context](https://github.com/dimitr-io/antigravity-desktop-context) 进行中文化与功能增强，遵循 [MIT License](LICENSE)。

@@ -13,8 +13,11 @@ import { homedir } from 'node:os';
 import { basename, dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { Response, SidecarApp } from 'sidecar_sdk';
+import { createSelfUpdater } from './self_update.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
+const PLUGIN_DIR = resolve(HERE, '..', '..');
+const updater = createSelfUpdater({ pluginDir: PLUGIN_DIR });
 const SCRIPT = join(HERE, 'context_report.py');
 const GEMINI_DIR = process.env.ANTIGRAVITY_GEMINI_DIR || join(homedir(), '.gemini');
 const CONVERSATIONS = join(GEMINI_DIR, 'antigravity', 'conversations');
@@ -311,6 +314,22 @@ app.api('/api/toggle-skill', async (data) => {
     return toggleSkill(data || {});
   } catch (err) {
     return { error: err.message || '切换技能状态失败。' };
+  }
+}, 'POST');
+
+app.api('/api/version', async (data) => {
+  try {
+    return await updater.check({ force: Boolean(data?.force) });
+  } catch (err) {
+    return { error: err.message || '检查版本失败。' };
+  }
+}, 'POST');
+
+app.api('/api/self-update', async () => {
+  try {
+    return await updater.update();
+  } catch (err) {
+    return { error: err.message || '更新插件失败。' };
   }
 }, 'POST');
 
