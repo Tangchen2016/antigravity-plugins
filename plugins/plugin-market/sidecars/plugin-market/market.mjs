@@ -178,19 +178,38 @@ export function createMarketManager({
     const errors = [];
     const seen = new Set();
 
-    for (const src of sources) {
-      const url = `https://raw.githubusercontent.com/${src.repo}/${src.branch}/marketplace.json`;
-      try {
+    async function fetchSourceManifest(src) {
+      const apiUrl = `https://api.github.com/repos/${src.repo}/contents/marketplace.json?ref=${encodeURIComponent(src.branch)}`;
+      const rawUrl = `https://raw.githubusercontent.com/${src.repo}/${src.branch}/marketplace.json`;
+      const attempts = force
+        ? [
+            { url: apiUrl, headers: { Accept: 'application/vnd.github.raw', 'User-Agent': 'antigravity-plugin-market', 'Cache-Control': 'no-cache' } },
+            { url: rawUrl, headers: { 'Cache-Control': 'no-cache' } },
+          ]
+        : [
+            { url: rawUrl, headers: { 'Cache-Control': 'no-cache' } },
+            { url: apiUrl, headers: { Accept: 'application/vnd.github.raw', 'User-Agent': 'antigravity-plugin-market', 'Cache-Control': 'no-cache' } },
+          ];
+      let lastErr;
+      for (const { url, headers } of attempts) {
         const controller = new AbortController();
         const timer = setTimeout(() => controller.abort(), 12000);
-        let res;
         try {
-          res = await fetchImpl(url, { signal: controller.signal, headers: { 'Cache-Control': 'no-cache' } });
+          const res = await fetchImpl(url, { signal: controller.signal, headers });
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          return await res.json();
+        } catch (err) {
+          lastErr = err;
         } finally {
           clearTimeout(timer);
         }
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const data = await res.json();
+      }
+      throw lastErr || new Error('拉取失败');
+    }
+
+    for (const src of sources) {
+      try {
+        const data = await fetchSourceManifest(src);
         const plugins = Array.isArray(data?.plugins) ? data.plugins : [];
         for (const p of plugins) {
           if (!p?.name || seen.has(p.name)) continue;

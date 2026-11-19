@@ -33,7 +33,7 @@
     {
       "name": "plugin-market",
       "displayName": "插件市场",
-      "version": "0.1.0",
+      "version": "0.1.1",
       "type": "侧边栏扩展",
       "description": "在侧边栏浏览插件市场、对比版本并管理本机已安装插件，支持一键安装、更新、启用、停用与卸载。",
       "path": "plugins/plugin-market",
