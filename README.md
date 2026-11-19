@@ -5,7 +5,7 @@
 **用于独立版 Google Antigravity App 的实用插件合集**
 
 [![Antigravity](https://img.shields.io/badge/Google-Antigravity%20App-4285F4?style=flat-square&logo=google&logoColor=white)](https://antigravity.google)
-[![Plugins](https://img.shields.io/badge/Plugins-3-34A853?style=flat-square)](#插件列表)
+[![Plugins](https://img.shields.io/badge/Plugins-4-34A853?style=flat-square)](#插件列表)
 [![Platform](https://img.shields.io/badge/Platform-macOS%20%7C%20Linux-555555?style=flat-square)](#快速安装)
 [![Last Commit](https://img.shields.io/github/last-commit/Tangchen2016/antigravity-plugins?style=flat-square&color=F9AB00)](https://github.com/Tangchen2016/antigravity-plugins/commits/main)
 [![Stars](https://img.shields.io/github/stars/Tangchen2016/antigravity-plugins?style=flat-square&color=A142F4)](https://github.com/Tangchen2016/antigravity-plugins/stargazers)
@@ -47,6 +47,7 @@ curl -fsSL https://raw.githubusercontent.com/Tangchen2016/antigravity-plugins/ma
 | 📊 **[上下文用量](#上下文用量)**<br>`desktop-context` | 侧边栏扩展 | 中文展示模型名称、上下文点阵图、分类 Token 占用与水位预警、可折叠上下文文件列表，支持双向悬停联动和一键复制 CLI 文本报告 | [复制命令](#安装上下文用量) |
 | 🌐 **[语言包管理](#语言包管理)**<br>`language-packs` | 侧边栏扩展 | 内置简/繁体词库，支持一键切换、导入 JSON 热更新词库（约 3 秒生效）与恢复基础词库 | [复制命令](#安装语言包管理) |
 | 💬 **[进度播报与节奏控制](#进度播报与节奏控制)**<br>`progress-updates` | 全局规则 | 让 Agent 按关键里程碑用引用块弱化播报进展，常规步骤自主推进，仅在分叉/高风险/阻塞节点暂停确认 | [复制命令](#安装进度播报与节奏控制) |
+| 🧩 **[插件市场](#插件市场)**<br>`plugin-market` | 侧边栏扩展 | 浏览远端插件市场、自动对比版本并管理本机插件，支持一键安装、更新、启用、停用、卸载及自定义 GitHub 源 | [复制命令](#安装插件市场) |
 
 ---
 
@@ -127,6 +128,29 @@ curl -fsSL https://raw.githubusercontent.com/Tangchen2016/antigravity-plugins/ma
 
 ---
 
+## 插件市场
+
+`plugins/plugin-market/` 提供侧边栏图形化插件管理与市场浏览能力，让你无需敲命令就能管理本机所有插件。
+
+<p>
+  <img src="docs/images/plugin-market.png" alt="插件市场面板效果图" width="460" />
+</p>
+
+### 核心特性
+- **已安装管理**：基于官方 `agy plugin` CLI 展示本机插件状态，支持搜索过滤及一键 **启用 / 停用 / 更新 / 卸载**（内置自身防误删保护）。
+- **市场与版本比对**：拉取仓库根目录的 `marketplace.json` 自动比对本机版本，直观标出 **未安装 / 已安装 / 有新版本**，一键下载安装或更新。
+- **自定义源扩展**：支持在面板底部添加任意包含 `marketplace.json` 的 GitHub 仓库作为插件源。
+
+### 安装插件市场
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/Tangchen2016/antigravity-plugins/main/install.sh | bash -s -- plugin-market
+```
+
+安装后在会话右侧打开 **概览 → 扩展 → 插件市场** 即可使用。
+
+---
+
 ## 更新与卸载
 
 - **更新全部插件**：重新运行一键安装命令即可覆盖更新到最新版本：
@@ -145,12 +169,14 @@ curl -fsSL https://raw.githubusercontent.com/Tangchen2016/antigravity-plugins/ma
 ```text
 antigravity-plugins/
 ├── install.sh                    # 一键安装 / 更新脚本
+├── marketplace.json              # 插件市场索引清单
 ├── README.md                     # 合集说明文档
 ├── docs/images/                  # 插件效果预览图
 └── plugins/
     ├── desktop-context/          # 上下文用量侧边栏扩展
     ├── language-packs/           # 语言包管理侧边栏扩展
-    └── progress-updates/         # 进度播报与节奏控制全局规则
+    ├── progress-updates/         # 进度播报与节奏控制全局规则
+    └── plugin-market/            # 插件市场与本机插件管理扩展
 ```
 
 ---

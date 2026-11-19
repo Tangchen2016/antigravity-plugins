@@ -91,6 +91,9 @@ function runPrivilegedScript(scriptPath, extraArgs = []) {
       if (/User canceled|-128/i.test(msg)) {
         return reject(new PackError('已取消管理员授权。'));
       }
+      if (/EPERM|operation not permitted/i.test(msg)) {
+        return reject(new PackError('被 macOS「App 管理」权限拦截：请打开 系统设置 → 隐私与安全性 → App 管理，勾选开启 Antigravity 后重试，或在终端执行：' + `bash "${scriptPath}"`));
+      }
       reject(new PackError(msg.trim() || '执行运行时脚本失败，请尝试在终端运行。'));
     });
   });

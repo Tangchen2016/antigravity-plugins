@@ -1,0 +1,363 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>插件市场</title>
+  <script src="/preload.js"></script>
+  <style>
+    :root {
+      color-scheme: light dark;
+      --ink: var(--foreground, #1f2328);
+      --dim: var(--muted-foreground, #57606a);
+      --line: var(--border, rgba(127, 127, 127, .24));
+      --surface: color-mix(in srgb, var(--ink) 3.5%, transparent);
+      --hover: color-mix(in srgb, var(--ink) 7.5%, transparent);
+      --accent: #4c8df6;
+      --ok: #34a853;
+      --warn: #f9ab00;
+      --error: light-dark(#cf222e, #ffb4ab);
+    }
+    * { box-sizing: border-box; }
+    [hidden] { display: none !important; }
+    body {
+      margin: 0;
+      color: var(--ink);
+      background: transparent;
+      font: 13px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      -webkit-font-smoothing: antialiased;
+    }
+    main { padding: 12px 14px 20px; }
+
+    .header {
+      display: flex; align-items: center; justify-content: space-between; gap: 8px;
+      margin-bottom: 10px;
+    }
+    .header h1 { margin: 0; font-size: 16px; font-weight: 650; }
+    .header-actions { display: flex; gap: 6px; }
+
+    .tabs {
+      display: flex; gap: 4px; padding: 3px;
+      background: var(--surface); border: 1px solid var(--line); border-radius: 8px;
+      margin-bottom: 10px;
+    }
+    .tab {
+      flex: 1; border: none; background: transparent; color: var(--dim);
+      padding: 5px 8px; border-radius: 6px; font: inherit; font-size: 12.5px; font-weight: 500;
+      cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 5px;
+    }
+    .tab:hover { color: var(--ink); }
+    .tab.active {
+      background: color-mix(in srgb, var(--ink) 9%, transparent);
+      color: var(--ink); font-weight: 600;
+    }
+    .badge {
+      font-size: 10.5px; padding: 0 6px; border-radius: 999px;
+      background: color-mix(in srgb, var(--ink) 10%, transparent);
+      color: var(--dim); font-variant-numeric: tabular-nums;
+    }
+    .badge.warn {
+      color: var(--warn);
+      background: color-mix(in srgb, var(--warn) 16%, transparent);
+    }
+
+    .toolbar { display: flex; gap: 6px; margin-bottom: 10px; }
+    input[type="search"], input[type="text"] {
+      flex: 1; min-width: 0; font: inherit; font-size: 12.5px;
+      color: var(--ink); background: var(--surface);
+      border: 1px solid var(--line); border-radius: 7px; padding: 5px 9px;
+      outline: none;
+    }
+    input:focus { border-color: color-mix(in srgb, var(--accent) 65%, transparent); }
+
+    button.btn {
+      font: inherit; font-size: 12px; color: var(--ink); cursor: pointer; white-space: nowrap;
+      background: transparent; border: 1px solid var(--line); border-radius: 6px;
+      padding: 4px 9px; transition: background .12s ease, border-color .12s ease, color .12s ease;
+    }
+    button.btn:hover:enabled { background: var(--hover); border-color: color-mix(in srgb, var(--dim) 55%, transparent); }
+    button.btn:disabled { opacity: .45; cursor: default; }
+    button.btn.primary {
+      color: var(--accent);
+      background: color-mix(in srgb, var(--accent) 12%, transparent);
+      border-color: color-mix(in srgb, var(--accent) 36%, transparent);
+    }
+    button.btn.primary:hover:enabled { background: color-mix(in srgb, var(--accent) 20%, transparent); }
+    button.btn.warn {
+      color: var(--warn);
+      background: color-mix(in srgb, var(--warn) 14%, transparent);
+      border-color: color-mix(in srgb, var(--warn) 38%, transparent);
+    }
+    button.btn.ghost { color: var(--dim); }
+    button.btn.ghost:hover:enabled { color: var(--ink); }
+    button.btn.danger { color: var(--error); }
+
+    .list { display: flex; flex-direction: column; gap: 8px; }
+    .card {
+      border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px;
+      background: var(--surface);
+    }
+    .card.disabled { opacity: .68; }
+    .card-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
+    .title-row { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+    .name { font-size: 13.5px; font-weight: 600; }
+    .ver { font-size: 11px; color: var(--dim); font-variant-numeric: tabular-nums; }
+    .pill {
+      font-size: 10.5px; padding: 1px 7px; border-radius: 999px;
+      border: 1px solid var(--line); color: var(--dim);
+    }
+    .pill.ok {
+      color: var(--ok);
+      background: color-mix(in srgb, var(--ok) 12%, transparent);
+      border-color: color-mix(in srgb, var(--ok) 35%, transparent);
+    }
+    .pill.update {
+      color: var(--warn);
+      background: color-mix(in srgb, var(--warn) 14%, transparent);
+      border-color: color-mix(in srgb, var(--warn) 38%, transparent);
+    }
+    .desc { margin: 5px 0 8px; font-size: 12px; color: var(--dim); line-height: 1.5; }
+    .card-foot { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+    .meta { font-size: 11px; color: var(--dim); }
+    .actions { display: flex; gap: 6px; flex-wrap: wrap; }
+
+    .feedback {
+      margin-bottom: 10px; padding: 7px 10px; border-radius: 7px; font-size: 12px;
+      background: var(--surface); border: 1px solid var(--line); color: var(--ink);
+    }
+    .feedback.error { color: var(--error); border-color: color-mix(in srgb, var(--error) 40%, transparent); }
+
+    details.sources {
+      margin-top: 14px; padding-top: 10px; border-top: 1px solid var(--line);
+    }
+    details.sources summary {
+      cursor: pointer; font-size: 11.5px; color: var(--dim); font-weight: 600;
+      user-select: none;
+    }
+    .source-list { margin: 8px 0; display: flex; flex-direction: column; gap: 6px; }
+    .source-row {
+      display: flex; align-items: center; justify-content: space-between; gap: 8px;
+      font-size: 12px; padding: 5px 8px; border-radius: 6px; background: var(--surface);
+      border: 1px solid var(--line);
+    }
+    .source-form { display: flex; gap: 6px; margin-top: 6px; }
+    .empty { text-align: center; color: var(--dim); padding: 28px 8px; font-size: 12.5px; }
+  </style>
+</head>
+<body>
+<main>
+  <div class="header">
+    <h1>插件市场</h1>
+    <div class="header-actions">
+      <button id="refresh" class="btn ghost" type="button">刷新</button>
+    </div>
+  </div>
+
+  <div class="tabs" role="tablist">
+    <button class="tab active" data-tab="installed" role="tab" type="button">已安装 <span id="cnt-installed" class="badge">0</span></button>
+    <button class="tab" data-tab="market" role="tab" type="button">插件市场 <span id="cnt-market" class="badge">0</span></button>
+  </div>
+
+  <div id="feedback" class="feedback" hidden></div>
+
+  <div class="toolbar">
+    <input id="search" type="search" placeholder="搜索插件名称或简介…" />
+  </div>
+
+  <div id="list" class="list"><div class="empty">正在读取插件信息…</div></div>
+
+  <details class="sources">
+    <summary>插件源管理</summary>
+    <div id="source-list" class="source-list"></div>
+    <form id="source-form" class="source-form">
+      <input id="source-input" type="text" placeholder="添加 GitHub 仓库，如 owner/repo" />
+      <button class="btn" type="submit">添加</button>
+    </form>
+  </details>
+</main>
+
+<script>
+(() => {
+  let state = null;
+  let tab = 'installed';
+  let query = '';
+  let busy = false;
+
+  const listEl = document.getElementById('list');
+  const feedbackEl = document.getElementById('feedback');
+  const searchEl = document.getElementById('search');
+  const refreshBtn = document.getElementById('refresh');
+  const cntInstalled = document.getElementById('cnt-installed');
+  const cntMarket = document.getElementById('cnt-market');
+  const sourceListEl = document.getElementById('source-list');
+  const sourceForm = document.getElementById('source-form');
+  const sourceInput = document.getElementById('source-input');
+
+  const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+  function setFeedback(msg, isError = false) {
+    feedbackEl.hidden = !msg;
+    feedbackEl.textContent = msg || '';
+    feedbackEl.classList.toggle('error', isError);
+  }
+
+  async function api(action, payload = {}) {
+    if (!window.sidecar?.fetch) throw new Error('请在 Antigravity 侧边栏中打开插件市场。');
+    const body = JSON.stringify(payload).replace(/[\u0080-\uffff]/g, (ch) => '\\u' + ch.charCodeAt(0).toString(16).padStart(4, '0'));
+    const res = await window.sidecar.fetch(`/api/${action}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body,
+    });
+    const text = await res.text();
+    let data;
+    try { data = JSON.parse(text); } catch { throw new Error('插件市场后端返回异常，请重试。'); }
+    if (data.error) throw new Error(data.error);
+    return data;
+  }
+
+  async function run(action, payload, pendingMsg, okMsg) {
+    if (busy) return;
+    busy = true;
+    render();
+    if (pendingMsg) setFeedback(pendingMsg, false);
+    try {
+      state = await api(action, payload);
+      const warnMsg = state.errors?.length ? `部分源拉取失败：${state.errors.join('；')}` : '';
+      setFeedback(okMsg || warnMsg, Boolean(!okMsg && warnMsg));
+    } catch (err) {
+      setFeedback(err.message || '操作失败', true);
+    } finally {
+      busy = false;
+      render();
+    }
+  }
+
+  function matches(item) {
+    if (!query) return true;
+    const q = query.toLowerCase();
+    return [item.name, item.displayName, item.description, item.type, ...(item.tags || [])]
+      .some((v) => String(v || '').toLowerCase().includes(q));
+  }
+
+  function renderInstalled(items) {
+    if (!items.length) return '<div class="empty">没有匹配的已安装插件。</div>';
+    return items.map((p) => {
+      const statusPill = p.enabled
+        ? '<span class="pill ok">已启用</span>'
+        : '<span class="pill">已停用</span>';
+      const updateBtn = p.hasUpdate
+        ? `<button class="btn warn" data-act="install" data-name="${esc(p.name)}" data-repo="${esc(p.repo)}" data-branch="${esc(p.branch)}" data-path="${esc(p.remotePath)}" ${busy ? 'disabled' : ''}>更新至 v${esc(p.remoteVersion)}</button>`
+        : '';
+      const toggleBtn = p.isSelf
+        ? '<span class="meta">当前插件</span>'
+        : (p.enabled
+            ? `<button class="btn ghost" data-act="disable" data-name="${esc(p.name)}" ${busy ? 'disabled' : ''}>停用</button>`
+            : `<button class="btn primary" data-act="enable" data-name="${esc(p.name)}" ${busy ? 'disabled' : ''}>启用</button>`);
+      const uninstallBtn = p.isSelf
+        ? ''
+        : `<button class="btn danger" data-act="uninstall" data-name="${esc(p.name)}" ${busy ? 'disabled' : ''}>卸载</button>`;
+      return `<article class="card${p.enabled ? '' : ' disabled'}">
+        <div class="card-top">
+          <div class="title-row">
+            <span class="name">${esc(p.displayName)}</span>
+            <span class="ver">v${esc(p.version)}</span>
+            ${statusPill}
+          </div>
+          <span class="pill">${esc(p.type)}</span>
+        </div>
+        <p class="desc">${esc(p.description || '暂无简介')}</p>
+        <div class="card-foot">
+          <span class="meta">${esc(p.name)}</span>
+          <div class="actions">${updateBtn}${toggleBtn}${uninstallBtn}</div>
+        </div>
+      </article>`;
+    }).join('');
+  }
+
+  function renderMarket(items) {
+    if (!items.length) return '<div class="empty">暂无可展示的市场插件。</div>';
+    return items.map((p) => {
+      const status = p.hasUpdate
+        ? `<span class="pill update">v${esc(p.installedVersion)} → v${esc(p.version)}</span>`
+        : p.installed
+          ? '<span class="pill ok">已安装</span>'
+          : '';
+      const btnText = p.hasUpdate ? '更新' : p.installed ? '重装' : '安装';
+      const btnCls = p.hasUpdate ? 'btn warn' : p.installed ? 'btn ghost' : 'btn primary';
+      return `<article class="card">
+        <div class="card-top">
+          <div class="title-row">
+            <span class="name">${esc(p.displayName)}</span>
+            <span class="ver">v${esc(p.version)}</span>
+            ${status}
+          </div>
+          <span class="pill">${esc(p.type)}</span>
+        </div>
+        <p class="desc">${esc(p.description || '暂无简介')}</p>
+        <div class="card-foot">
+          <span class="meta">${esc(p.repo)}</span>
+          <div class="actions">
+            <button class="${btnCls}" data-act="install" data-name="${esc(p.name)}" data-repo="${esc(p.repo)}" data-branch="${esc(p.branch)}" data-path="${esc(p.path)}" ${busy ? 'disabled' : ''}>${btnText}</button>
+          </div>
+        </div>
+      </article>`;
+    }).join('');
+  }
+
+  function renderSources(sources) {
+    sourceListEl.innerHTML = (sources || []).map((s) => `
+      <div class="source-row">
+        <span>${esc(s.repo)}<span class="ver"> @${esc(s.branch)}</span></span>
+        ${s.builtin ? '<span class="ver">内置</span>' : `<button class="btn danger" data-act="source-remove" data-repo="${esc(s.repo)}" data-branch="${esc(s.branch)}" ${busy ? 'disabled' : ''}>移除</button>`}
+      </div>
+    `).join('');
+  }
+
+  function render() {
+    refreshBtn.disabled = busy;
+    if (!state) return;
+    cntInstalled.textContent = String(state.installed.length);
+    cntMarket.textContent = state.updateCount > 0 ? `${state.market.length} · ${state.updateCount}可更` : String(state.market.length);
+    cntMarket.classList.toggle('warn', state.updateCount > 0);
+
+    const items = (tab === 'installed' ? state.installed : state.market).filter(matches);
+    listEl.innerHTML = tab === 'installed' ? renderInstalled(items) : renderMarket(items);
+    renderSources(state.sources);
+  }
+
+  document.querySelectorAll('.tab').forEach((el) => {
+    el.addEventListener('click', () => {
+      tab = el.dataset.tab;
+      document.querySelectorAll('.tab').forEach((t) => t.classList.toggle('active', t === el));
+      render();
+    });
+  });
+
+  searchEl.addEventListener('input', () => { query = searchEl.value.trim(); render(); });
+  refreshBtn.addEventListener('click', () => run('state', { force: true }, '正在刷新插件列表与远端目录…', '列表已刷新。'));
+
+  document.body.addEventListener('click', (e) => {
+    const btn = e.target.closest('button[data-act]');
+    if (!btn || busy) return;
+    const { act, name, repo, branch, path } = btn.dataset;
+    if (act === 'enable') return run('enable', { name }, `正在启用 ${name}…`, `已启用 ${name}。`);
+    if (act === 'disable') return run('disable', { name }, `正在停用 ${name}…`, `已停用 ${name}。`);
+    if (act === 'uninstall') return run('uninstall', { name }, `正在卸载 ${name}…`, `已卸载 ${name}。`);
+    if (act === 'install') return run('install', { name, repo, branch, path }, `正在从 ${repo} 安装 ${name}…`, `已安装 / 更新 ${name}（扩展类插件如已打开请重开标签页）。`);
+    if (act === 'source-remove') return run('source-remove', { repo, branch }, `正在移除源 ${repo}…`, `已移除源 ${repo}。`);
+  });
+
+  sourceForm.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const repo = sourceInput.value.trim();
+    if (!repo) return;
+    sourceInput.value = '';
+    run('source-add', { repo }, `正在添加源 ${repo}…`, `已添加源 ${repo}。`);
+  });
+
+  run('state', { force: false }, '', '');
+})();
+</script>
+</body>
+</html>

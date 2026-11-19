@@ -1,0 +1,6 @@
+{
+  "name": "plugin-market",
+  "displayName": "插件市场",
+  "description": "在侧边栏浏览插件市场并管理本机插件，支持一键安装、更新、启用、停用与卸载。",
+  "version": "0.1.0"
+}

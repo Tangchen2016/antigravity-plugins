@@ -1,0 +1,43 @@
+{
+  "name": "Antigravity Plugins",
+  "repository": "Tangchen2016/antigravity-plugins",
+  "branch": "main",
+  "plugins": [
+    {
+      "name": "desktop-context",
+      "displayName": "上下文用量",
+      "version": "1.0.2",
+      "type": "侧边栏扩展",
+      "description": "中文展示模型名称、上下文点阵图、分类 Token 占用与水位预警、可折叠上下文文件与已启用 MCP 服务。",
+      "path": "plugins/desktop-context",
+      "tags": ["context", "token", "mcp"]
+    },
+    {
+      "name": "language-packs",
+      "displayName": "语言包管理",
+      "version": "0.2.0",
+      "type": "侧边栏扩展",
+      "description": "自包含中文汉化与语言包管理扩展，面板内一键安装/卸载监听运行时，支持简体/繁体/原版英文 3 秒热切换。",
+      "path": "plugins/language-packs",
+      "tags": ["i18n", "chinese", "language"]
+    },
+    {
+      "name": "progress-updates",
+      "displayName": "进度播报与节奏控制",
+      "version": "0.1.0",
+      "type": "全局规则",
+      "description": "让 Agent 按关键里程碑用引用块简短播报进展，常规步骤自主推进，仅在分叉/高风险/阻塞节点暂停确认。",
+      "path": "plugins/progress-updates",
+      "tags": ["rules", "workflow", "progress"]
+    },
+    {
+      "name": "plugin-market",
+      "displayName": "插件市场",
+      "version": "0.1.0",
+      "type": "侧边栏扩展",
+      "description": "在侧边栏浏览插件市场、对比版本并管理本机已安装插件，支持一键安装、更新、启用、停用与卸载。",
+      "path": "plugins/plugin-market",
+      "tags": ["market", "manager", "plugins"]
+    }
+  ]
+}
