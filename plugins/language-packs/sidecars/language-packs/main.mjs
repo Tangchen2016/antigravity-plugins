@@ -19,6 +19,8 @@ const directory = process.env.ANTIGRAVITY_HOT_DICTIONARY_DIR
   || join(runtimeDir, 'active');
 const installScript = join(runtimeDir, 'install-runtime.sh');
 const uninstallScript = join(runtimeDir, 'uninstall-runtime.sh');
+const installCommand = join(runtimeDir, 'install-runtime.command');
+const uninstallCommand = join(runtimeDir, 'uninstall-runtime.command');
 
 const manager = createPackManager({
   directory,
@@ -71,30 +73,19 @@ function getRuntimeStatus() {
   };
 }
 
-function shellQuote(str) {
-  return `'${String(str).replace(/'/g, "'\\''")}'`;
-}
-
-function runPrivilegedScript(scriptPath, extraArgs = []) {
+function launchInTerminal(commandFile) {
   if (process.platform !== 'darwin') {
-    throw new PackError('当前平台暂不支持面板内一键提权，请在终端手动执行安装脚本。');
+    throw new PackError('当前平台暂不支持自动唤起终端，请手动执行安装脚本。');
   }
-  if (!existsSync(scriptPath)) {
+  if (!existsSync(commandFile)) {
     throw new PackError('未找到运行时脚本，请重新安装语言包扩展。');
   }
-  const cmd = ['bash', scriptPath, ...extraArgs].map(shellQuote).join(' ');
-  const appleScript = `do shell script ${JSON.stringify(cmd)} with administrator privileges`;
   return new Promise((resolve, reject) => {
-    execFile('osascript', ['-e', appleScript], { timeout: 120000 }, (err, stdout, stderr) => {
-      if (!err) return resolve(stdout);
-      const msg = String(stderr || err.message || '');
-      if (/User canceled|-128/i.test(msg)) {
-        return reject(new PackError('已取消管理员授权。'));
+    execFile('open', ['-a', 'Terminal', commandFile], { timeout: 15000 }, (err, _stdout, stderr) => {
+      if (err) {
+        return reject(new PackError(String(stderr || err.message || '无法唤起系统终端。').trim()));
       }
-      if (/EPERM|operation not permitted/i.test(msg)) {
-        return reject(new PackError('被 macOS「App 管理」权限拦截：请打开 系统设置 → 隐私与安全性 → App 管理，勾选开启 Antigravity 后重试，或在终端执行：' + `bash "${scriptPath}"`));
-      }
-      reject(new PackError(msg.trim() || '执行运行时脚本失败，请尝试在终端运行。'));
+      resolve();
     });
   });
 }
@@ -126,11 +117,11 @@ const actions = {
   update: ({ locale, dictionary }) => { manager.update(locale, dictionary); return fullState(); },
   reset: ({ locale } = {}) => { manager.reset(locale); return fullState(); },
   'runtime-install': async () => {
-    await runPrivilegedScript(installScript, ['--no-kill', '--brand-title=english']);
+    await launchInTerminal(installCommand);
     return fullState();
   },
   'runtime-uninstall': async () => {
-    await runPrivilegedScript(uninstallScript, ['--no-kill']);
+    await launchInTerminal(uninstallCommand);
     return fullState();
   },
   'open-app-management': async () => {

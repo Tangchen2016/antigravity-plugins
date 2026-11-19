@@ -216,8 +216,8 @@
       runtimePill.classList.toggle('ok', Boolean(rt.installed));
       runtimePill.textContent = rt.installed ? '已安装' : '未安装';
       runtimeDesc.textContent = rt.installed
-        ? '主窗口已注入监听引擎；Antigravity 更新版本后可点右侧重新安装。'
-        : '首次使用请先安装注入运行时（会弹出系统管理员授权），完成后重启 Antigravity。';
+        ? '主窗口已注入监听引擎；Antigravity 更新版本后可点右侧在终端重新安装。'
+        : '首次使用点击右侧按钮将打开系统「终端」执行安装脚本，输入开机密码完成并重启 Antigravity。';
       runtimeInstall.textContent = rt.installed ? '重新安装' : '安装运行时';
       runtimeUninstall.hidden = !rt.installed;
       runtimeInstall.disabled = busy || !rt.supported || !rt.appFound;
@@ -355,10 +355,10 @@
       run('reset', {}, '正在还原默认语言设置…', '已还原为原版英文并清除本地导入词库。');
     });
     runtimeInstall.addEventListener('click', () => {
-      run('runtime-install', {}, '正在请求管理员授权并安装运行时…', '运行时安装完成！请重启 Antigravity 后启用语言包。');
+      run('runtime-install', {}, '正在打开系统「终端」…', '已在系统「终端」中启动安装脚本，请切换到终端窗口输入开机密码完成安装。');
     });
     runtimeUninstall.addEventListener('click', () => {
-      run('runtime-uninstall', {}, '正在请求管理员授权并卸载运行时…', '已卸载运行时并还原官方应用包，重启 Antigravity 生效。');
+      run('runtime-uninstall', {}, '正在打开系统「终端」…', '已在系统「终端」中启动卸载脚本，请切换到终端窗口输入开机密码完成还原。');
     });
     openPrivacy.addEventListener('click', () => {
       run('open-app-management', {}, '正在打开系统设置 → 隐私与安全性 → App 管理…', '已打开「App 管理」设置：请勾选开启 Antigravity 后回到此处重试。');
