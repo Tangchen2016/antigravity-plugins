@@ -4,7 +4,7 @@
 
 ## 一键安装
 
-安装全部插件：
+安装全部插件（点击代码块右上角可直接复制）：
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/Tangchen2016/antigravity-plugins/main/install.sh | bash
@@ -14,11 +14,11 @@ curl -fsSL https://raw.githubusercontent.com/Tangchen2016/antigravity-plugins/ma
 
 ## 插件列表
 
-| 插件 | 类型 | 核心功能 | 入口 / 生效方式 | 一键安装 |
-| :--- | :--- | :--- | :--- | :--- |
-| **上下文用量** (`desktop-context`) | 侧边栏扩展 | 中文展示模型名称、上下文点阵图、分类 Token 占用、检查点与上下文文件，支持双向悬停联动和一键复制 CLI 文本报告 | 会话右侧 **概览 → 扩展 → 上下文用量** | `curl -fsSL https://raw.githubusercontent.com/Tangchen2016/antigravity-plugins/main/install.sh \| bash -s -- desktop-context` |
-| **语言包管理** (`language-packs`) | 侧边栏扩展 | 内置简/繁体词库，支持一键切换、导入 JSON 热更新词库（约 3 秒生效）与恢复基础词库 | 会话右侧 **概览 → 扩展 → 语言包管理** | `curl -fsSL https://raw.githubusercontent.com/Tangchen2016/antigravity-plugins/main/install.sh \| bash -s -- language-packs` |
-| **进度播报与节奏控制** (`progress-updates`) | 全局规则 | 让 Agent 按关键里程碑用引用块弱化播报进展，常规步骤自主推进，仅在分叉/高风险/阻塞节点暂停确认 | 下一轮对话自动生效 | `curl -fsSL https://raw.githubusercontent.com/Tangchen2016/antigravity-plugins/main/install.sh \| bash -s -- progress-updates` |
+| 插件 | 类型 | 核心功能 | 安装 |
+| :--- | :--- | :--- | :--- |
+| **[上下文用量](#上下文用量)**<br>`desktop-context` | 侧边栏扩展 | 中文展示模型名称、上下文点阵图、分类 Token 占用、检查点与上下文文件，支持双向悬停联动和一键复制 CLI 文本报告 | [复制命令](#安装上下文用量) |
+| **[语言包管理](#语言包管理)**<br>`language-packs` | 侧边栏扩展 | 内置简/繁体词库，支持一键切换、导入 JSON 热更新词库（约 3 秒生效）与恢复基础词库 | [复制命令](#安装语言包管理) |
+| **[进度播报与节奏控制](#进度播报与节奏控制)**<br>`progress-updates` | 全局规则 | 让 Agent 按关键里程碑用引用块弱化播报进展，常规步骤自主推进，仅在分叉/高风险/阻塞节点暂停确认 | [复制命令](#安装进度播报与节奏控制) |
 
 ---
 
@@ -26,9 +26,9 @@ curl -fsSL https://raw.githubusercontent.com/Tangchen2016/antigravity-plugins/ma
 
 `plugins/desktop-context/` 提供中文上下文用量面板，显示模型名称、上下文占用图、分类用量、检查点和上下文文件，并支持复制原始 CLI 格式的文本报告。将指针移到圆点或分类行上，或用 Tab 聚焦，可双向高亮查看该分类对应的用量和占比。百分比以模型的原生上下文窗口为分母。
 
-### 安装
+### 安装上下文用量
 
-Antigravity App 需要能在 `PATH` 上找到 Python 3.10 或更新版本。执行：
+Antigravity App 需要能在 `PATH` 上找到 Python 3.10 或更新版本：
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/Tangchen2016/antigravity-plugins/main/install.sh | bash -s -- desktop-context
@@ -42,7 +42,7 @@ curl -fsSL https://raw.githubusercontent.com/Tangchen2016/antigravity-plugins/ma
 
 `plugins/language-packs/` 是与「上下文用量」独立的扩展。它内置简体和繁体词库，从本机 `antigravity2-cn` 的词库整理而来。
 
-### 安装
+### 安装语言包管理
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/Tangchen2016/antigravity-plugins/main/install.sh | bash -s -- language-packs
@@ -62,7 +62,7 @@ curl -fsSL https://raw.githubusercontent.com/Tangchen2016/antigravity-plugins/ma
 - **视觉分层**：过程播报统一用 `> **进展｜**...` 引用块弱化显示，与最终正文回复拉开层级。
 - **关键节点才暂停**：常规小决策自主推进，仅在方向分叉且返工成本高、高风险/不可逆操作或遇到预期外阻塞时停下来确认。
 
-### 安装
+### 安装进度播报与节奏控制
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/Tangchen2016/antigravity-plugins/main/install.sh | bash -s -- progress-updates
