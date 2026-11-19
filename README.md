@@ -1,6 +1,20 @@
+<div align="center">
+
 # Antigravity Plugins
 
-用于独立版 Google Antigravity App 的插件合集。
+**用于独立版 Google Antigravity App 的实用插件合集**
+
+[![Antigravity](https://img.shields.io/badge/Google-Antigravity%20App-4285F4?style=flat-square&logo=google&logoColor=white)](https://antigravity.google)
+[![Plugins](https://img.shields.io/badge/Plugins-3-34A853?style=flat-square)](#插件列表)
+[![Platform](https://img.shields.io/badge/Platform-macOS%20%7C%20Linux-555555?style=flat-square)](#快速安装)
+[![Last Commit](https://img.shields.io/github/last-commit/Tangchen2016/antigravity-plugins?style=flat-square&color=F9AB00)](https://github.com/Tangchen2016/antigravity-plugins/commits/main)
+[![Stars](https://img.shields.io/github/stars/Tangchen2016/antigravity-plugins?style=flat-square&color=A142F4)](https://github.com/Tangchen2016/antigravity-plugins/stargazers)
+
+[快速安装](#快速安装) · [插件列表](#插件列表) · [插件详情](#上下文用量) · [更新与卸载](#更新与卸载) · [目录结构](#目录结构) · [常见问题](#常见问题)
+
+</div>
+
+---
 
 ## 快速安装
 
@@ -12,7 +26,7 @@
 帮我从 https://github.com/Tangchen2016/antigravity-plugins 运行 install.sh 安装全部插件
 ```
 
-> 如果只想安装单个插件，把「全部插件」换成插件名即可（例如 `progress-updates`、`desktop-context`、`language-packs`）。
+> 如果只想安装单个插件，把「全部插件」换成插件名即可（如 `progress-updates`、`desktop-context`、`language-packs`）。
 
 ### 方式二：命令行一键安装
 
@@ -22,21 +36,28 @@
 curl -fsSL https://raw.githubusercontent.com/Tangchen2016/antigravity-plugins/main/install.sh | bash
 ```
 
-> 再次运行同一条命令即可更新到最新版本；若已克隆仓库到本地，也可直接执行 `./install.sh` 或 `./install.sh <插件名>`。
+> 再次运行同一条命令即可更新到最新版本；若已克隆仓库到本地，也可直接执行 `./install.sh`、`./install.sh --list` 或 `./install.sh <插件名>`。
+
+---
 
 ## 插件列表
 
 | 插件 | 类型 | 核心功能 | 安装 |
 | :--- | :--- | :--- | :--- |
-| **[上下文用量](#上下文用量)**<br>`desktop-context` | 侧边栏扩展 | 中文展示模型名称、上下文点阵图、分类 Token 占用、检查点与上下文文件，支持双向悬停联动和一键复制 CLI 文本报告 | [复制命令](#安装上下文用量) |
-| **[语言包管理](#语言包管理)**<br>`language-packs` | 侧边栏扩展 | 内置简/繁体词库，支持一键切换、导入 JSON 热更新词库（约 3 秒生效）与恢复基础词库 | [复制命令](#安装语言包管理) |
-| **[进度播报与节奏控制](#进度播报与节奏控制)**<br>`progress-updates` | 全局规则 | 让 Agent 按关键里程碑用引用块弱化播报进展，常规步骤自主推进，仅在分叉/高风险/阻塞节点暂停确认 | [复制命令](#安装进度播报与节奏控制) |
+| 📊 **[上下文用量](#上下文用量)**<br>`desktop-context` | 侧边栏扩展 | 中文展示模型名称、上下文点阵图、分类 Token 占用与水位预警、可折叠上下文文件列表，支持双向悬停联动和一键复制 CLI 文本报告 | [复制命令](#安装上下文用量) |
+| 🌐 **[语言包管理](#语言包管理)**<br>`language-packs` | 侧边栏扩展 | 内置简/繁体词库，支持一键切换、导入 JSON 热更新词库（约 3 秒生效）与恢复基础词库 | [复制命令](#安装语言包管理) |
+| 💬 **[进度播报与节奏控制](#进度播报与节奏控制)**<br>`progress-updates` | 全局规则 | 让 Agent 按关键里程碑用引用块弱化播报进展，常规步骤自主推进，仅在分叉/高风险/阻塞节点暂停确认 | [复制命令](#安装进度播报与节奏控制) |
 
 ---
 
 ## 上下文用量
 
-`plugins/desktop-context/` 提供中文上下文用量面板，显示模型名称、上下文占用图、分类用量、检查点和上下文文件，并支持复制原始 CLI 格式的文本报告。将指针移到圆点或分类行上，或用 Tab 聚焦，可双向高亮查看该分类对应的用量和占比。百分比以模型的原生上下文窗口为分母。
+`plugins/desktop-context/` 提供中文上下文用量面板，帮助你实时掌握当前会话的 Token 分布与窗口水位。
+
+### 核心特性
+- **概览卡片与水位预警**：显示模型名称、已用 / 总窗口 Token 和 100 格点阵图；占比 `≥ 70%` 琥珀预警、`≥ 85%` 红色告警。
+- **分类分布与双向联动**：展示用户消息、智能体回复、工具调用、系统提示词、技能等分类占用微条；悬停圆点或分类行可双向高亮联动。
+- **上下文文件与检查点**：可折叠查看知识文件、产物文件、技能文件、系统文件及当前检查点状态，并支持一键复制 CLI 格式文本报告。
 
 ### 安装上下文用量
 
@@ -46,13 +67,13 @@ Antigravity App 需要能在 `PATH` 上找到 Python 3.10 或更新版本：
 curl -fsSL https://raw.githubusercontent.com/Tangchen2016/antigravity-plugins/main/install.sh | bash -s -- desktop-context
 ```
 
-打开 **个性化定制 → 已安装**，查看 **上下文用量**。在会话右侧打开 **概览 → 扩展 → 上下文用量**。如果界面仍显示旧插件，关闭旧标签页后重新进入「已安装」。
+打开 **个性化定制 → 已安装** 查看 **上下文用量**，在会话右侧打开 **概览 → 扩展 → 上下文用量**。详细说明与测试命令见 [插件说明](plugins/desktop-context/README.md)。
 
-详细说明与测试命令见 [插件说明](plugins/desktop-context/README.md)。
+---
 
 ## 语言包管理
 
-`plugins/language-packs/` 是与「上下文用量」独立的扩展。它内置简体和繁体词库，从本机 `antigravity2-cn` 的词库整理而来。
+`plugins/language-packs/` 是与「上下文用量」独立的侧边栏扩展，内置简体和繁体词库，从本机 `antigravity2-cn` 的词库整理而来。
 
 ### 安装语言包管理
 
@@ -60,19 +81,22 @@ curl -fsSL https://raw.githubusercontent.com/Tangchen2016/antigravity-plugins/ma
 curl -fsSL https://raw.githubusercontent.com/Tangchen2016/antigravity-plugins/main/install.sh | bash -s -- language-packs
 ```
 
-在会话中打开 **概览 → 扩展 → 语言包管理**。每次可启用一种语言包。用 **更新词库** 导入 JSON，格式为 `{"英文原文":"译文"}`。启用中的语言包更新后会立即写入热更新目录，主窗口通常在约 3 秒内刷新。停用语言包后会回到基础词库。
+### 使用说明
+- 在会话中打开 **概览 → 扩展 → 语言包管理**，每次可启用一种语言包。
+- 点击 **更新词库** 可导入自定义 JSON（格式为 `{"英文原文":"译文"}`），启用中的语言包更新后会立即写入热更新目录，主窗口通常在约 3 秒内刷新；停用后恢复基础词库。
+- 依赖已安装的 `antigravity2-cn` 词库热更新运行时（默认目录 `~/Mine/antigravity2-cn/dicts`）；如目录不同，可在扩展的 `sidecar.json` 中通过 `env.ANTIGRAVITY_HOT_DICTIONARY_DIR` 指定绝对路径。
+- 停用或移除扩展前，请先在管理面板停用当前语言包。语言包写成独立词库文件，不会覆盖基础词库。
 
-扩展依赖已经安装的 `antigravity2-cn` 词库热更新运行时。本机默认目录是 `~/Mine/antigravity2-cn/dicts`。如运行时使用其他目录，可在扩展的 `sidecar.json` 中通过 `env.ANTIGRAVITY_HOT_DICTIONARY_DIR` 设置相应绝对路径。
-
-停用和移除扩展前，请先在管理面板停用当前语言包。语言包由扩展写成独立的词库文件，基础词库不受覆盖。切换语言包适用于主窗口的词典文案，原生菜单和硬编码文案使用当前安装的汉化版本。
+---
 
 ## 进度播报与节奏控制
 
-`plugins/progress-updates/` 是一个全局规则插件，用于改善模型在多步骤任务中长时间静默执行的问题：
+`plugins/progress-updates/` 是一个全局规则插件，用来解决模型在多步骤任务中容易长时间闷头执行、黑盒静默的问题。
 
-- **里程碑播报**：在动手前、定位根因、完成核心修改、完成验证等节点用 1~3 句话同步进展，长耗时连续调用工具时兜底播报。
-- **视觉分层**：过程播报统一用 `> **进展｜**...` 引用块弱化显示，与最终正文回复拉开层级。
-- **关键节点才暂停**：常规小决策自主推进，仅在方向分叉且返工成本高、高风险/不可逆操作或遇到预期外阻塞时停下来确认。
+### 核心特性
+- **按里程碑简短播报**：在动手前、定位根因、完成核心修改、完成测试验证等实质性节点用 1~3 句话同步进展；长耗时连续调用工具时也会兜底播报。
+- **消息体视觉分层**：过程播报统一用 `> **进展｜**...` 引用块弱化显示，与最终结构化正文回复明显区分，扫一眼就能掌握节奏。
+- **只在关键节点暂停**：常规小决策自主推进，仅在方向分叉且返工成本高、高风险/不可逆操作、或遇到预期外阻塞时停下来确认。
 
 ### 安装进度播报与节奏控制
 
@@ -81,3 +105,48 @@ curl -fsSL https://raw.githubusercontent.com/Tangchen2016/antigravity-plugins/ma
 ```
 
 无需重启或新开会话，下一轮对话即自动生效；可在 **个性化定制 → 已安装** 中随时启用或停用。
+
+---
+
+## 更新与卸载
+
+- **更新全部插件**：重新运行一键安装命令即可覆盖更新到最新版本：
+  ```bash
+  curl -fsSL https://raw.githubusercontent.com/Tangchen2016/antigravity-plugins/main/install.sh | bash
+  ```
+- **卸载指定插件**：在 Antigravity **个性化定制 → 已安装** 中直接关闭/卸载，或删除对应目录：
+  ```bash
+  rm -rf ~/.gemini/config/plugins/<插件名>
+  ```
+
+---
+
+## 目录结构
+
+```text
+antigravity-plugins/
+├── install.sh                    # 一键安装 / 更新脚本
+├── README.md                     # 合集说明文档
+└── plugins/
+    ├── desktop-context/          # 上下文用量侧边栏扩展
+    ├── language-packs/           # 语言包管理侧边栏扩展
+    └── progress-updates/         # 进度播报与节奏控制全局规则
+```
+
+---
+
+## 常见问题
+
+<details>
+<summary><b>更新侧边栏扩展后，面板里看到的还是旧界面怎么办？</b></summary>
+
+侧边栏标签页打开后只会轮询数据接口，不会自动重载 HTML 页面。关闭右侧旧的扩展标签页后重新打开（或在 **个性化定制 → 已安装** 中将该插件关闭再重新启用）即可加载最新版本。
+
+</details>
+
+<details>
+<summary><b>安装或修改规则插件（如 <code>progress-updates</code>）需要重启或新开会话吗？</b></summary>
+
+不需要。Antigravity 会在每一轮请求时动态加载已启用的全局规则，安装或修改后在当前会话的下一轮回复就会立即生效。
+
+</details>
