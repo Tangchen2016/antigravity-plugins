@@ -550,6 +550,68 @@ const MAIN_PROCESS_TEXT_TABLES = {
     ],
     'dist/provisionSplash.js': [
         ["<div>Setting up WSL: ${escapeHtml(distro)}</div>", "<div>正在初始化 WSL：${escapeHtml(distro)}</div>", "<div>正在設定 WSL：${escapeHtml(distro)}</div>"]
+    ],
+    'dist/ideInstall/wizardHtml.js': [
+        ["<title>Welcome to Antigravity</title>", "<title>欢迎使用 Antigravity</title>", "<title>歡迎使用 Antigravity</title>"],
+        [">Setting up…</div>", ">正在初始化…</div>", ">正在設定…</div>"],
+        ["<h1>Welcome to the new Antigravity!</h1>", "<h1>欢迎使用全新 Antigravity！</h1>", "<h1>歡迎使用全新 Antigravity！</h1>"],
+        ["<p>Antigravity has been redesigned to put agents first with new capabilities. If you'd still like a code editor, you can download it as a separate app named <b>Antigravity IDE</b>.</p>", "<p>Antigravity 已全面重构，以智能体为核心并带来全新能力。如果您仍需要代码编辑器，可以将其作为独立应用下载，名称为 <b>Antigravity IDE</b>。</p>", "<p>Antigravity 已全面重新設計，以代理為核心並帶來全新功能。如果您仍需要程式碼編輯器，可以將其作為獨立應用程式下載，名稱為 <b>Antigravity IDE</b>。</p>"],
+        ["<span>Download the Antigravity IDE</span>", "<span>下载 Antigravity IDE</span>", "<span>下載 Antigravity IDE</span>"],
+        ['<button class="btn-primary" id="btn-skip">Explore the new Antigravity</button>', '<button class="btn-primary" id="btn-skip">开始探索全新 Antigravity</button>', '<button class="btn-primary" id="btn-skip">開始探索全新 Antigravity</button>']
+    ],
+    'dist/remote/disconnectedPage.js': [
+        ["const title = connecting ? 'Reconnecting…' : 'Disconnected';", "const title = connecting ? '正在重新连接…' : '连接已断开';", "const title = connecting ? '正在重新連線…' : '連線已中斷';"],
+        ["? `Reconnecting to ${host}…`", "? `正在重新连接到 ${host}…`", "? `正在重新連線至 ${host}…`"],
+        [": `Disconnected from ${host}`;", ": `已与 ${host} 断开连接`;", ": `已與 ${host} 中斷連線`;"],
+        ["? `Agents keep running on ${host}.`", "? `智能体仍在 ${host} 上继续运行。`", "? `代理仍在 ${host} 上繼續執行。`"],
+        [": `Agents keep running on ${host} unless its server stopped.`;", ": `除非服务端已停止，否则智能体仍会在 ${host} 上继续运行。`;", ": `除非伺服器已停止，否則代理仍會在 ${host} 上繼續執行。`;"],
+        ['>Reconnect</a>`', '>重新连接</a>`', '>重新連線</a>`'],
+        ['>Close</a></div>', '>关闭</a></div>', '>關閉</a></div>']
+    ],
+    'dist/remote/signInCallback.js': [
+        ["body: page('Signed in', 'Signed in. You can close this tab.'),", "body: page('登录成功', '已完成登录，您可以关闭此标签页。'),", "body: page('登入成功', '已完成登入，您可以關閉此分頁。'),"],
+        ["body: page('Sign-in did not complete', 'The Antigravity server on the SSH host could not be reached. ' +\n        'Sign in again from Antigravity.'),", "body: page('登录未完成', '无法连接到 SSH 主机上的 Antigravity 服务。请从 Antigravity 重新发起登录。'),", "body: page('登入未完成', '無法連線至 SSH 主機上的 Antigravity 伺服器。請從 Antigravity 重新登入。'),"],
+        ["body: page('Sign-in did not complete', `The Antigravity server on the SSH host answered with HTTP ${status}. ` +\n            'Sign in again from Antigravity.'),", "body: page('登录未完成', `SSH 主机上的 Antigravity 服务返回了 HTTP ${status}。请从 Antigravity 重新发起登录。`),", "body: page('登入未完成', `SSH 主機上的 Antigravity 伺服器回應了 HTTP ${status}。請從 Antigravity 重新登入。`),"]
+    ],
+    'dist/cablev2.js': [
+        ["<title>Passkeys</title>", "<title>通行密钥 (Passkeys)</title>", "<title>通行金鑰 (Passkeys)</title>"],
+        ['<h1 class="sheet-title">Passkeys</h1>', '<h1 class="sheet-title">通行密钥 (Passkeys)</h1>', '<h1 class="sheet-title">通行金鑰 (Passkeys)</h1>'],
+        ['<p class="mechanism-header">Use your phone or tablet</p>', '<p class="mechanism-header">使用手机或平板电脑</p>', '<p class="mechanism-header">使用手機或平板電腦</p>'],
+        ['<p id="status" class="mechanism-desc">Scan this QR code with the camera on the device that has your passkey for ${safeRpId}</p>', '<p id="status" class="mechanism-desc">请使用保存有 ${safeRpId} 通行密钥的设备相机扫描此二维码</p>', '<p id="status" class="mechanism-desc">請使用存有 ${safeRpId} 通行金鑰的裝置相機掃描此 QR 碼</p>'],
+        ['<button type="button" class="cancel-btn" onclick="window.close()">Cancel</button>', '<button type="button" class="cancel-btn" onclick="window.close()">取消</button>', '<button type="button" class="cancel-btn" onclick="window.close()">取消</button>'],
+        ["title: 'Passkeys',", "title: '通行密钥 (Passkeys)',", "title: '通行金鑰 (Passkeys)',"]
+    ],
+    'dist/remote/sshArgs.js': [
+        ["yes: 'SSH authentication failed. Check your password, code or keys, then try again.',", "yes: 'SSH 身份验证失败。请检查您的密码、验证码或密钥后重试。',", "yes: 'SSH 驗證失敗。請檢查您的密碼、驗證碼或金鑰後再試一次。',"],
+        ["onReconnect: 'SSH authentication failed. Click Reconnect to sign in again.',", "onReconnect: 'SSH 身份验证失败。请点击“重新连接”再次登录。',", "onReconnect: 'SSH 驗證失敗。請按一下「重新連線」再次登入。',"],
+        ['no: "SSH authentication failed. Antigravity can\'t answer password or code prompts on Windows yet: set up key-based login with ssh-agent, then try again.",', 'no: "SSH 身份验证失败。Windows 暂不支持响应密码或验证码提示：请先通过 ssh-agent 配置密钥登录，然后重试。",', 'no: "SSH 驗證失敗。Windows 尚未支援回應密碼或驗證碼提示：請先透過 ssh-agent 設定金鑰登入，然後再試一次。",'],
+        ['return "That SSH host isn\'t valid. Enter an alias from your SSH config or a host like user@host or user@host:2222.";', 'return "该 SSH 主机格式无效。请输入 SSH 配置文件中的别名，或使用 user@host、user@host:2222 格式。";', 'return "該 SSH 主機格式無效。請輸入 SSH 設定檔中的別名，或使用 user@host、user@host:2222 格式。";'],
+        ['? "The host\'s SSH key is unknown or has changed. Save it with ssh in a terminal. If it changed, ask the host\'s owner first: the connection may be intercepted."', '? "该主机的 SSH 密钥未知或已变更。请先在终端中使用 ssh 保存该密钥。若密钥发生变更，请先向主机所有者确认，连接可能遭到拦截。"', '? "該主機的 SSH 金鑰未知或已變更。請先在終端機中使用 ssh 儲存該金鑰。若金鑰發生變更，請先向主機擁有者確認，連線可能遭到攔截。"'],
+        [': "The host\'s SSH key has changed or isn\'t trusted. If it changed, ask the host\'s owner first: the connection may be intercepted.";', ': "该主机的 SSH 密钥已变更或不受信任。若密钥发生变更，请先向主机所有者确认，连接可能遭到拦截。";', ': "該主機的 SSH 金鑰已變更或不受信任。若金鑰發生變更，請先向主機擁有者確認，連線可能遭到攔截。";'],
+        ["return `Couldn't connect to the SSH host. Check its name, your network and ssh config (e.g. a ProxyCommand), and that ssh to it works in a terminal${prompts === 'no' ? ' without a prompt' : ''}.`;", "return `无法连接到 SSH 主机。请检查主机名、网络与 ssh 配置（如 ProxyCommand），并确认在终端中可正常通过 ssh 连接${prompts === 'no' ? '（无需交互提示）' : ''}。`;", "return `無法連線至 SSH 主機。請檢查主機名稱、網路與 ssh 設定（例如 ProxyCommand），並確認在終端機中可正常透過 ssh 連線${prompts === 'no' ? '（無需互動提示）' : ''}。`;"],
+        ["return 'SSH port forwarding failed. Make sure the server allows TCP forwarding (AllowTcpForwarding) for your account, then try again.';", "return 'SSH 端口转发失败。请确认服务器允许您的账户使用 TCP 转发 (AllowTcpForwarding)，然后重试。';", "return 'SSH 連接埠轉發失敗。請確認伺服器允許您的帳戶使用 TCP 轉發 (AllowTcpForwarding)，然後再試一次。';"],
+        ['return "The SSH host isn\'t supported. Antigravity needs Linux on x64 or arm64 with glibc 2.26 or newer.";', 'return "不支持该 SSH 主机。Antigravity 需要 x64 或 arm64 架构且 glibc 2.26 及以上的 Linux 系统。";', 'return "不支援該 SSH 主機。Antigravity 需要 x64 或 arm64 架構且 glibc 2.26 以上版本的 Linux 系統。";'],
+        ["return 'Another host that shares your home directory runs the Antigravity server. Connect to that host instead.';", "return '另一台共享您主目录的主机正在运行 Antigravity 服务。请改为连接到该主机。';", "return '另一台共用您家目錄的主機正在執行 Antigravity 伺服器。請改為連線至該主機。';"],
+        ['return "Couldn\'t install the Antigravity server on the SSH host. Make sure it has free disk space, and that it or this computer can download from the internet.";', 'return "无法在 SSH 主机上安装 Antigravity 服务。请确认磁盘空间充足，且远程主机或本机可以访问互联网下载。";', 'return "無法在 SSH 主機上安裝 Antigravity 伺服器。請確認磁碟空間充足，且遠端主機或本機可以存取網際網路下載。";'],
+        ["return `The Antigravity server failed to start on the SSH host. See its log in ~/${types_1.REMOTE_INSTALL_ROOT}/data on that host.`;", "return `SSH 主机上的 Antigravity 服务启动失败。请查看该主机 ~/${types_1.REMOTE_INSTALL_ROOT}/data 中的日志。`;", "return `SSH 主機上的 Antigravity 伺服器啟動失敗。請查看該主機 ~/${types_1.REMOTE_INSTALL_ROOT}/data 中的日誌。`;"],
+        ["return 'The Antigravity server on the SSH host stopped. Reconnect to start it again.';", "return 'SSH 主机上的 Antigravity 服务已停止。请重新连接以再次启动。';", "return 'SSH 主機上的 Antigravity 伺服器已停止。請重新連線以再次啟動。';"],
+        ["return 'The SSH connection closed. Check your network connection, then reconnect.';", "return 'SSH 连接已关闭。请检查网络连接后重新连接。';", "return 'SSH 連線已關閉。請檢查網路連線後重新連線。';"],
+        ["return 'The connection was cancelled.';", "return '连接已取消。';", "return '連線已取消。';"],
+        ['return "Couldn\'t connect to the SSH host. Try ssh to it in a terminal, and see the Antigravity log for details.";', 'return "无法连接到 SSH 主机。请尝试在终端中使用 ssh 连接，并查看 Antigravity 日志了解详情。";', 'return "無法連線至 SSH 主機。請嘗試在終端機中使用 ssh 連線，並查看 Antigravity 日誌以了解詳細資訊。";']
+    ],
+    'dist/remote/sshErrorText.js': [
+        ["return `Error code: ${err.code}\\nLogs: ${logPath()}`;", "return `错误代码：${err.code}\\n日志：${logPath()}`;", "return `錯誤代碼：${err.code}\\n日誌：${logPath()}`;"],
+        ["return err.reportedByRemote ? `${label} reported: ${text}` : text;", "return err.reportedByRemote ? `${label} 报告：${text}` : text;", "return err.reportedByRemote ? `${label} 回報：${text}` : text;"],
+        [": 'The connection was closed before it finished.';", ": '连接在完成前已关闭。';", ": '連線在完成前已關閉。';"],
+        ["return `${what}\\nFile: ${note} on ${label}`;", "return `${what}\\n文件：${label} 上的 ${note}`;", "return `${what}\\n檔案：${label} 上的 ${note}`;"],
+        ["return err.code === 'UNKNOWN' ? `${text}\\nLogs: ${logPath()}` : text;", "return err.code === 'UNKNOWN' ? `${text}\\n日志：${logPath()}` : text;", "return err.code === 'UNKNOWN' ? `${text}\\n日誌：${logPath()}` : text;"]
+    ],
+    'dist/wsl.js': [
+        ['error: `This folder belongs to the WSL distro "${unc[1]}", but this window is connected to "${distro}".`,', 'error: `此文件夹属于 WSL 发行版 "${unc[1]}"，但当前窗口连接的是 "${distro}"。`,', 'error: `此資料夾屬於 WSL 發行版 "${unc[1]}"，但目前視窗連線的是 "${distro}"。`,'],
+        ["warning: 'This folder is on the Windows filesystem. Accessing it from WSL (via /mnt) can be slow — for best performance keep projects inside the WSL filesystem.',", "warning: '此文件夹位于 Windows 文件系统中。从 WSL（通过 /mnt）访问可能会较慢——为获得最佳性能，建议将项目保存在 WSL 文件系统内。',", "warning: '此資料夾位於 Windows 檔案系統中。從 WSL（透過 /mnt）存取可能會較慢——為獲得最佳效能，建議將專案儲存在 WSL 檔案系統內。',"],
+        ["return { error: `This location cannot be opened in WSL: ${winPath}` };", "return { error: `无法在 WSL 中打开此位置：${winPath}` };", "return { error: `無法在 WSL 中開啟此位置：${winPath}` };"],
+        ["onStatus?.('Downloading the Antigravity binary\\u2026');", "onStatus?.('正在下载 Antigravity 二进制文件…');", "onStatus?.('正在下載 Antigravity 二進位檔案…');"],
+        ["onStatus?.(`Installing into ${distro}\\u2026`);", "onStatus?.(`正在安装到 ${distro}…`);", "onStatus?.(`正在安裝到 ${distro}…`);"]
     ]
 };
 

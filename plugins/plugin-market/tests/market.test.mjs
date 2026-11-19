@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
-import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
+import { execFileSync } from 'node:child_process';
+import { mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
@@ -59,4 +60,85 @@ test('state merges local plugins and remote catalog and detects updates', async 
 
   await assert.rejects(() => manager.togglePlugin('plugin-market', false), /自身/);
   await assert.rejects(() => manager.uninstallPlugin('plugin-market'), /自身/);
+});
+
+test('plugin-market updates are separated from regular plugins and handled via updateSelf', async (t) => {
+  const root = mkdtempSync(join(tmpdir(), 'agy-market-self-test-'));
+  t.after(() => rmSync(root, { recursive: true, force: true }));
+
+  const pluginsDir = join(root, 'plugins');
+  const dataDir = join(root, 'data');
+  const repoRoot = join(root, 'repo-archive');
+
+  mkdirSync(join(pluginsDir, 'plugin-market'), { recursive: true });
+  writeFileSync(
+    join(pluginsDir, 'plugin-market', 'plugin.json'),
+    JSON.stringify({ name: 'plugin-market', displayName: '插件市场', version: '0.1.1' }),
+  );
+  mkdirSync(join(pluginsDir, 'language-packs'), { recursive: true });
+  writeFileSync(
+    join(pluginsDir, 'language-packs', 'plugin.json'),
+    JSON.stringify({ name: 'language-packs', displayName: '语言包管理', version: '0.1.0' }),
+  );
+
+  // Build a local tar.gz archive containing updated versions of both plugins
+  mkdirSync(join(repoRoot, 'repo-main', 'plugins', 'plugin-market'), { recursive: true });
+  writeFileSync(
+    join(repoRoot, 'repo-main', 'plugins', 'plugin-market', 'plugin.json'),
+    JSON.stringify({ name: 'plugin-market', displayName: '插件市场', version: '0.1.2' }),
+  );
+  mkdirSync(join(repoRoot, 'repo-main', 'plugins', 'language-packs'), { recursive: true });
+  writeFileSync(
+    join(repoRoot, 'repo-main', 'plugins', 'language-packs', 'plugin.json'),
+    JSON.stringify({ name: 'language-packs', displayName: '语言包管理', version: '0.2.0' }),
+  );
+  const fixtureTar = join(root, 'fixture.tar.gz');
+  execFileSync('tar', ['-czf', fixtureTar, '-C', repoRoot, 'repo-main']);
+
+  const mockFetch = async () => ({
+    ok: true,
+    json: async () => ({
+      plugins: [
+        { name: 'plugin-market', displayName: '插件市场', version: '0.1.2', type: '侧边栏扩展', description: '市场' },
+        { name: 'language-packs', displayName: '语言包管理', version: '0.2.0', type: '侧边栏扩展', description: '新版' },
+      ],
+    }),
+  });
+
+  const updateOrder = [];
+  const manager = createMarketManager({
+    pluginsDir,
+    dataDir,
+    agyBin: '/nonexistent/agy',
+    fetchImpl: mockFetch,
+    downloadArchive: async ({ tarPath, name }) => {
+      updateOrder.push(name);
+      writeFileSync(tarPath, readFileSync(fixtureTar));
+    },
+  });
+
+  const before = await manager.state({ force: true });
+  assert.equal(before.updateCount, 1);
+  assert.equal(before.selfUpdate?.remoteVersion, '0.1.2');
+  assert.equal(before.selfInfo?.hasUpdate, true);
+  assert.equal(before.selfInfo?.sourceUrl, 'https://github.com/Tangchen2016/antigravity-plugins/tree/main/plugins/plugin-market');
+  assert.equal(before.installed.some((p) => p.name === 'plugin-market'), false);
+  assert.equal(before.market.some((p) => p.name === 'plugin-market'), false);
+  assert.equal(
+    before.market.find((p) => p.name === 'language-packs')?.sourceUrl,
+    'https://github.com/Tangchen2016/antigravity-plugins/tree/main/plugins/language-packs',
+  );
+
+  const afterAll = await manager.updateAll();
+  assert.deepEqual(updateOrder, ['language-packs']);
+  assert.equal(afterAll.updateCount, 0);
+  assert.equal(afterAll.selfUpdate?.remoteVersion, '0.1.2');
+
+  const afterSelf = await manager.updateSelf();
+  assert.deepEqual(updateOrder, ['language-packs', 'plugin-market']);
+  assert.equal(afterSelf.selfUpdate, null);
+  assert.equal(afterSelf.selfInfo?.hasUpdate, false);
+  assert.equal(afterSelf.selfInfo?.localVersion, '0.1.2');
+  const updatedSelf = JSON.parse(readFileSync(join(pluginsDir, 'plugin-market', 'plugin.json'), 'utf8'));
+  assert.equal(updatedSelf.version, '0.1.2');
 });

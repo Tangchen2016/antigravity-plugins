@@ -6,6 +6,7 @@ import {
   mkdtempSync,
   readdirSync,
   readFileSync,
+  renameSync,
   rmSync,
   writeFileSync,
 } from 'node:fs';
@@ -82,6 +83,7 @@ export function createMarketManager({
   dataDir,
   agyBin = findAgyBinary(),
   fetchImpl = globalThis.fetch,
+  downloadArchive,
 }) {
   const sourcesPath = join(dataDir, 'sources.json');
   const catalogCachePath = join(dataDir, 'catalog-cache.json');
@@ -150,7 +152,8 @@ export function createMarketManager({
     }
 
     if (!existsSync(pluginsDir)) return [];
-    const entries = readdirSync(pluginsDir, { withFileTypes: true }).filter((d) => d.isDirectory());
+    const entries = readdirSync(pluginsDir, { withFileTypes: true })
+      .filter((d) => d.isDirectory() && !d.name.startsWith('.'));
     return entries.map((d) => {
       const fullPath = join(pluginsDir, d.name);
       const meta = readLocalManifest(fullPath, d.name);
@@ -250,7 +253,30 @@ export function createMarketManager({
 
     const selfLocal = installedMap.get(SELF_PLUGIN);
     const selfRemote = catalogMap.get(SELF_PLUGIN);
-    const selfUpdate = selfLocal && selfRemote && compareVersions(selfRemote.version, selfLocal.version) > 0
+    const selfHasUpdate = Boolean(selfLocal && selfRemote && compareVersions(selfRemote.version, selfLocal.version) > 0);
+    const selfRepo = selfRemote?.repo || DEFAULT_SOURCES[0].repo;
+    const selfBranch = selfRemote?.branch || DEFAULT_SOURCES[0].branch;
+    const selfPath = selfRemote?.path || `plugins/${SELF_PLUGIN}`;
+    const cleanSelfPath = String(selfPath || '').replace(/^\/+|\/+$/g, '');
+    const selfSourceUrl = selfRepo
+      ? (cleanSelfPath
+          ? `https://github.com/${selfRepo}/tree/${encodeURIComponent(selfBranch)}/${cleanSelfPath}`
+          : `https://github.com/${selfRepo}`)
+      : null;
+    const selfInfo = selfLocal
+      ? {
+          name: SELF_PLUGIN,
+          displayName: selfLocal.displayName || selfRemote?.displayName || '插件市场',
+          localVersion: selfLocal.version,
+          remoteVersion: selfRemote?.version || null,
+          hasUpdate: selfHasUpdate,
+          repo: selfRepo,
+          branch: selfBranch,
+          path: selfPath,
+          sourceUrl: selfSourceUrl,
+        }
+      : null;
+    const selfUpdate = selfHasUpdate
       ? {
           name: SELF_PLUGIN,
           localVersion: selfLocal.version,
@@ -266,8 +292,15 @@ export function createMarketManager({
       .map((item) => {
         const local = installedMap.get(item.name);
         const hasUpdate = Boolean(local && compareVersions(item.version, local.version) > 0);
+        const cleanPath = String(item.path || '').replace(/^\/+|\/+$/g, '');
+        const sourceUrl = item.repo
+          ? (cleanPath
+              ? `https://github.com/${item.repo}/tree/${encodeURIComponent(item.branch || 'main')}/${cleanPath}`
+              : `https://github.com/${item.repo}`)
+          : null;
         return {
           ...item,
+          sourceUrl,
           installed: Boolean(local),
           installedVersion: local?.version || null,
           enabled: local ? local.enabled : false,
@@ -283,6 +316,12 @@ export function createMarketManager({
         const displayName = item.displayName && item.displayName !== item.name
           ? item.displayName
           : (remote?.displayName || item.displayName || item.name);
+        const cleanRemotePath = String(remote?.path || '').replace(/^\/+|\/+$/g, '');
+        const sourceUrl = remote?.repo
+          ? (cleanRemotePath
+              ? `https://github.com/${remote.repo}/tree/${encodeURIComponent(remote.branch || 'main')}/${cleanRemotePath}`
+              : `https://github.com/${remote.repo}`)
+          : null;
         return {
           ...item,
           displayName,
@@ -291,6 +330,7 @@ export function createMarketManager({
           repo: remote?.repo || null,
           branch: remote?.branch || null,
           remotePath: remote?.path || null,
+          sourceUrl,
         };
       });
 
@@ -298,10 +338,11 @@ export function createMarketManager({
       sources: loadSources(),
       installed: localList,
       market,
+      selfInfo,
       selfUpdate,
       errors: catalog.errors,
       fetchedAt: catalog.fetchedAt,
-      updateCount: market.filter((m) => m.hasUpdate).length,
+      updateCount: localList.filter((p) => p.hasUpdate).length,
     };
   }
 
@@ -314,7 +355,11 @@ export function createMarketManager({
     const tmp = mkdtempSync(join(tmpdir(), 'agy-market-'));
     try {
       const tarPath = join(tmp, 'archive.tar.gz');
-      await runCmd('curl', ['-fsSL', '-o', tarPath, url]);
+      if (downloadArchive) {
+        await downloadArchive({ url, tarPath, name, repo: targetRepo, branch, subPath: targetSubPath });
+      } else {
+        await runCmd('curl', ['-fsSL', '-o', tarPath, url]);
+      }
       await runCmd('tar', ['-xzf', tarPath, '-C', tmp]);
       const extracted = readdirSync(tmp, { withFileTypes: true })
         .find((d) => d.isDirectory());
@@ -325,8 +370,23 @@ export function createMarketManager({
       }
       mkdirSync(pluginsDir, { recursive: true });
       const destDir = join(pluginsDir, name);
-      rmSync(destDir, { recursive: true, force: true });
-      cpSync(srcDir, destDir, { recursive: true });
+      const stamp = `${process.pid}-${Date.now()}`;
+      const stageDir = join(pluginsDir, `.${name}.staging-${stamp}`);
+      const backupDir = join(pluginsDir, `.${name}.backup-${stamp}`);
+      try {
+        cpSync(srcDir, stageDir, { recursive: true });
+        if (existsSync(destDir)) {
+          renameSync(destDir, backupDir);
+        }
+        renameSync(stageDir, destDir);
+        rmSync(backupDir, { recursive: true, force: true });
+      } catch (err) {
+        if (!existsSync(destDir) && existsSync(backupDir)) {
+          try { renameSync(backupDir, destDir); } catch {}
+        }
+        rmSync(stageDir, { recursive: true, force: true });
+        throw err;
+      }
     } finally {
       rmSync(tmp, { recursive: true, force: true });
     }
@@ -388,6 +448,22 @@ export function createMarketManager({
     return state({ force: false });
   }
 
+  async function updateSelf() {
+    const current = await state({ force: true });
+    const target = current.selfUpdate || current.selfInfo || {
+      name: SELF_PLUGIN,
+      repo: DEFAULT_SOURCES[0].repo,
+      branch: DEFAULT_SOURCES[0].branch,
+      path: `plugins/${SELF_PLUGIN}`,
+    };
+    return installPlugin({
+      name: SELF_PLUGIN,
+      repo: target.repo,
+      branch: target.branch || 'main',
+      path: target.path || `plugins/${SELF_PLUGIN}`,
+    });
+  }
+
   async function openPluginDir(name) {
     if (!name) throw new MarketError('缺少插件名称。');
     const list = await listInstalled();
@@ -399,11 +475,33 @@ export function createMarketManager({
     return state({ force: false });
   }
 
+  async function openUrl(url) {
+    let parsed;
+    try {
+      parsed = new URL(String(url || ''));
+    } catch {
+      throw new MarketError('无效的源码链接。');
+    }
+    if (parsed.protocol !== 'https:' && parsed.protocol !== 'http:') {
+      throw new MarketError('仅支持打开 http/https 链接。');
+    }
+    if (process.platform === 'darwin') {
+      await runCmd('open', [parsed.toString()]);
+    } else if (process.platform === 'win32') {
+      await runCmd('cmd', ['/c', 'start', '', parsed.toString()]);
+    } else {
+      await runCmd('xdg-open', [parsed.toString()]);
+    }
+    return state({ force: false });
+  }
+
   return {
     state,
     installPlugin,
     updateAll,
+    updateSelf,
     openPluginDir,
+    openUrl,
     togglePlugin,
     uninstallPlugin,
     addSource,

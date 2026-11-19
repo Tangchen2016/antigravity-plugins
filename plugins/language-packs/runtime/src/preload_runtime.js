@@ -35,7 +35,7 @@
     const SKIP_TAGS = ['SCRIPT', 'STYLE', 'PRE', 'CODE'];
 
     // 代码、富文本输入框及对话内容隔离选择器：排除 Lexical 输入框、用户消息、AI 响应正文、思考内容、代码块、终端及文件路径
-    const CODE_ISOLATION_SELECTOR = 'script, style, pre, code, .monaco-editor, .cm-editor, .cm-line, [contenteditable="true"], [contenteditable="plaintext-only"], [contenteditable=""], [data-lexical-editor], .terminal, .xterm, .code-line, .code-block, .line-content, [aria-label="File Viewer"], [aria-label="文件查看器"], [aria-label="檔案檢視器"], [data-file-uri], [data-uri], [class*="diffEditor"], .token, .hljs, [class*="mtk"], .font-mono, [data-quotable-inline="true"], .context-scope-mention, [data-testid="file-title-name"], [data-testid="entity-pill"], [data-project-card="true"], [data-testid="conversation-row-sidebar"] span.truncate, [translate="no"], .notranslate, .md-divider-spacing, .cursor-edit, [data-testid="user-input-step"] [data-quotable="true"], [data-testid="user-input-step"] .whitespace-pre-wrap, [data-testid="planner-response-text"], [data-testid="thinking-collapsible-trigger"] + div, [data-testid="thinking-collapsible-trigger"] ~ div, .msg-body, .sys-text, .node-label, .raw-meta .path, .o2-mauth, .o2-wchip.bee > span:last-child, .o2-m[data-o2who]:not(.all) > span:last-child';
+    const CODE_ISOLATION_SELECTOR = 'script, style, pre, code, .monaco-editor, .cm-editor, .cm-line, [contenteditable="true"], [contenteditable="plaintext-only"], [contenteditable=""], [data-lexical-editor], .terminal, .xterm, .code-line, .code-block, .line-content, [aria-label="File Viewer"], [aria-label="文件查看器"], [aria-label="檔案檢視器"], [data-file-uri], [data-uri], [class*="diffEditor"], .token, .hljs, [class*="mtk"], .font-mono, [data-quotable-inline="true"], .context-scope-mention, [data-testid="file-title-name"], [data-testid="entity-pill"], [data-project-card="true"]:not([data-project-label="In Progress"]):not([data-project-label="Idle"]):not([data-project-label="Blocked"]):not([data-project-label="This Computer"]):not([data-project-label="Remote"]):not([data-project-label="No Project"]):not([data-project-label="No Repo"]):not([data-project-label="No Environment"]):not([data-project-label="Other"]), [data-testid="conversation-row-sidebar"] span.truncate, [translate="no"], .notranslate, .md-divider-spacing, .cursor-edit, [data-testid="user-input-step"] [data-quotable="true"], [data-testid="user-input-step"] .whitespace-pre-wrap, [data-testid="planner-response-text"], [data-testid="thinking-collapsible-trigger"] + div, [data-testid="thinking-collapsible-trigger"] ~ div, .msg-body, .sys-text, .node-label, .raw-meta .path, .o2-mauth, .o2-wchip.bee > span:last-child, .o2-m[data-o2who]:not(.all) > span:last-child';
 
     function isCodeOrEditor(node, forAttribute) {
         try {
@@ -749,6 +749,96 @@
             return (USE_TW ? "已傳送訊息給 " : "已向 ") + rZh + (USE_TW ? "" : " 发送消息");
         }],
         [/^Failed to save project settings:\s*(.+)$/i, (m, err) => (USE_TW ? "儲存專案設定失敗：" : "保存项目设置失败：") + err],
+
+        // 动态模板文案补齐（播放、账户/MCP/插件、快捷键/设置、会话/执行/环境与操作失败提示）
+        [/^Playback speed\s+([0-9.]+x)$/i, (m, spd) => (USE_TW ? "播放速度 " : "播放速度 ") + spd],
+        [/^Show\s+(.+?)\s+in folder$/i, (m, item) => USE_TW ? ("在資料夾中顯示 " + item) : ("在文件夹中显示 " + item)],
+        [/^Remove\s+(.+?)\s+from list$/i, (m, item) => USE_TW ? ("從清單中移除 " + item) : ("从列表中移除 " + item)],
+        [/^Remove\s+(.+?)\s+from Recent$/i, (m, host) => USE_TW ? ("從最近項目中移除 " + host) : ("从最近列表中移除 " + host)],
+        [/^Move to Group:\s*(.+)$/i, (m, grp) => (USE_TW ? "移至群組：" : "移动到分组：") + grp],
+        [/^Remove context from\s+(.+)$/i, (m, lbl) => (USE_TW ? "移除來自 " : "移除来自 ") + lbl + (USE_TW ? " 的上下文" : " 的上下文")],
+        [/^(.+?)\.\s*Show in\s+(.+)$/i, (m, prefix, app) => prefix + (USE_TW ? "。在 " : "。在 ") + app + (USE_TW ? " 中顯示" : " 中显示")],
+        [/^Your Plan:\s*(.+)$/i, (m, plan) => (USE_TW ? "您的方案：" : "您的订阅方案：") + plan],
+        [/^Sign in to use\s+(.+?)!$/i, (m, app) => (USE_TW ? "登入以使用 " : "登录以使用 ") + app + "！"],
+        [/^Sign in to\s+(.+?)\s+remotely$/i, (m, target) => (USE_TW ? "遠端登入 " : "远程登录 ") + target],
+        [/^Sign in to\s+(.+)$/i, (m, target) => (USE_TW ? "登入 " : "登录 ") + target],
+        [/^Secret for a new\s+(.+?)\s+account$/i, (m, prov) => (USE_TW ? "新 " : "新 ") + prov + (USE_TW ? " 帳戶的金鑰" : " 账户的密钥")],
+        [/^Secret for\s+(.+)$/i, (m, prov) => prov + (USE_TW ? " 的金鑰" : " 的密钥")],
+        [/^Make\s+(.+?)\s+the default\s+(.+?)\s+account$/i, (m, user, prov) => (USE_TW ? "將 " : "将 ") + user + (USE_TW ? " 設為預設 " : " 设为默认 ") + prov + (USE_TW ? " 帳戶" : " 账户")],
+        [/^Label for\s+(.+)$/i, (m, name) => name + (USE_TW ? " 的標籤" : " 的标签")],
+        [/^More actions for\s+(.+)$/i, (m, name) => name + (USE_TW ? " 的更多操作" : " 的更多操作")],
+        [/^More for\s+(.+)$/i, (m, name) => name + (USE_TW ? " 的更多選項" : " 的更多选项")],
+        [/^Account this MCP server uses:\s*(.+)$/i, (m, lbl) => (USE_TW ? "此 MCP 伺服器使用的帳戶：" : "此 MCP 服务器使用的账户：") + lbl],
+        [/^Connect an account for\s+(.+?)\s+so the agent can run automations\.?$/i, (m, provs) => (USE_TW ? "連結 " : "连接 ") + provs + (USE_TW ? " 的帳戶，讓代理可以執行自動化任務。" : " 的账户，以便智能体运行自动化任务。")],
+        [/^Manage\s+(.+?)\s+app settings\.?$/i, (m, app) => (USE_TW ? "管理 " : "管理 ") + app + (USE_TW ? " 應用程式設定。" : " 应用设置。")],
+        [/^Manage\s+(.+?)\s+(resources|folders)\s+and settings\.?$/i, (m, kind, noun) => (USE_TW ? "管理 " : "管理 ") + kind + (USE_TW ? (/^res/i.test(noun) ? " 資源與設定。" : " 資料夾與設定。") : (/^res/i.test(noun) ? " 资源与设置。" : " 文件夹与设置。"))],
+        [/^Reset\s+(\d+)\s+overrides?$/i, (m, n) => (USE_TW ? "重設 " : "重置 ") + n + (USE_TW ? " 項覆寫設定" : " 项覆盖设置")],
+        [/^Shortcut\s+(.+?)\s+for\s+(.+)$/i, (m, k, cmd) => cmd + (USE_TW ? " 的快速鍵：" : " 的快捷键：") + k],
+        [/^Remove shortcut\s+(.+?)\s+for\s+(.+)$/i, (m, k, cmd) => (USE_TW ? "移除 " : "移除 ") + cmd + (USE_TW ? " 的快速鍵 " : " 的快捷键 ") + k],
+        [/^Add shortcut for\s+(.+)$/i, (m, cmd) => (USE_TW ? "為 " : "为 ") + cmd + (USE_TW ? " 新增快速鍵" : " 添加快捷键")],
+        [/^Reset\s+(.+?)\s+to default$/i, (m, cmd) => (USE_TW ? "將 " : "将 ") + cmd + (USE_TW ? " 重設為預設值" : " 重置为默认值")],
+        [/^Select\s+(.+?)\s+Theme$/i, (m, name) => (USE_TW ? "選擇 " : "选择 ") + name + (USE_TW ? " 佈景主題" : " 主题")],
+        [/^Welcome to\s+(.+?)!$/i, (m, name) => (USE_TW ? "歡迎使用 " : "欢迎使用 ") + name + "！"],
+        [/^(\d+)\s+tools?\s+disabled$/i, (m, n) => (USE_TW ? "已停用 " : "已禁用 ") + n + (USE_TW ? " 個工具" : " 个工具")],
+        [/^(Disable|Enable)\s+(.+?)\s+tool for\s+(.+)$/i, (m, act, tool, srv) => (/^disable$/i.test(act) ? (USE_TW ? "為 " : "为 ") : (USE_TW ? "為 " : "为 ")) + srv + (/^disable$/i.test(act) ? (USE_TW ? " 停用 " : " 禁用 ") : (USE_TW ? " 啟用 " : " 启用 ")) + tool + (USE_TW ? " 工具" : " 工具")],
+        [/^Configure\s+(.+?),\s*values missing$/i, (m, name) => (USE_TW ? "設定 " : "配置 ") + name + (USE_TW ? "（缺少必填值）" : "（缺少必填值）")],
+        [/^Add\s+(\d+)\s+plugins?\s+from\s+(.+)$/i, (m, n, src) => (USE_TW ? "從 " : "从 ") + src + (USE_TW ? " 新增 " : " 添加 ") + n + (USE_TW ? " 個外掛程式" : " 个插件")],
+        [/^Plugins in\s+(.+)$/i, (m, shelf) => shelf + (USE_TW ? " 中的外掛程式" : " 中的插件")],
+        [/^See less in\s+(.+)$/i, (m, shelf) => (USE_TW ? "收合 " : "收起 ") + shelf],
+        [/^Search for\s+"(.+?)"\s+in the Marketplace$/i, (m, q) => (USE_TW ? "在市集中搜尋「" : "在插件市场中搜索“") + q + (USE_TW ? "」" : "”")],
+        [/^Search Google for\s+"(.+?)"$/i, (m, q) => (USE_TW ? "在 Google 搜尋「" : "在 Google 中搜索“") + q + (USE_TW ? "」" : "”")],
+        [/^Details for\s+(.+)$/i, (m, title) => title + (USE_TW ? " 的詳細資訊" : " 的详情")],
+        [/^Run\s+(.+?)\s+now$/i, (m, name) => (USE_TW ? "立即執行 " : "立即运行 ") + name],
+        [/^Install folder\s+"(.+?)"\s+is already in use$/i, (m, dir) => (USE_TW ? "安裝資料夾「" : "安装文件夹“") + dir + (USE_TW ? "」已被使用" : "”已被占用")],
+        [/^Stop\s+(\d+)\s+selected$/i, (m, n) => (USE_TW ? "停止所選的 " : "停止已选中的 ") + n + (USE_TW ? " 項" : " 项")],
+        [/^(\d+)\s+files?\s+changed$/i, (m, n) => USE_TW ? ("已變更 " + n + " 個檔案") : ("已更改 " + n + " 个文件")],
+        [/^(\d+)\s+lines?\s+added,\s*(\d+)\s+lines?\s+removed$/i, (m, a, d) => (USE_TW ? "新增 " : "新增 ") + a + (USE_TW ? " 行，刪除 " : " 行，删除 ") + d + " 行"],
+        [/^View Diff for\s+(.+)$/i, (m, f) => (USE_TW ? "檢視 " : "查看 ") + f + (USE_TW ? " 的差異" : " 的差异")],
+        [/^Environment paused\.\s*Click to resume it and load the\s+(.+?)\.?$/i, (m, f) => (USE_TW ? "環境已暫停。按一下以恢復並載入 " : "环境已暂停。点击以恢复并加载 ") + f + "。"],
+        [/^Switch environment\s*\((.+)\)$/i, (m, env) => (USE_TW ? "切換環境 (" : "切换环境 (") + env + ")"],
+        [/^Using default\s+(.+?)\s+name$/i, (m, env) => (USE_TW ? "使用預設 " : "使用默认 ") + env + (USE_TW ? " 名稱" : " 名称")],
+        [/^Detached at\s+([0-9a-f]{5,40})$/i, (m, sha) => (USE_TW ? "分離頭指標位於 " : "分离头指针位于 ") + sha],
+        [/^Branch,\s*current:\s*(.+)$/i, (m, b) => (USE_TW ? "分支，目前：" : "分支，当前：") + b],
+        [/^Select project,\s*current:\s*(.+)$/i, (m, p) => (USE_TW ? "選擇專案，目前：" : "选择项目，当前：") + p],
+        [/^Waiting for command completion\s*\(up to\s+(\d+)\s+seconds?\)$/i, (m, sec) => (USE_TW ? "正在等待指令完成（最多 " : "正在等待命令完成（最多 ") + sec + " 秒）"],
+        [/^Running for\s+(.+)$/i, (m, dur) => (USE_TW ? "已執行 " : "已运行 ") + (formatUsageDuration(dur) || formatCompactDuration(dur))],
+        [/^Question\s+(\d+)\s+of\s+(\d+)$/i, (m, a, b) => (USE_TW ? "第 " : "第 ") + a + " / " + b + (USE_TW ? " 個問題" : " 个问题")],
+        [/^Turn\s+(\d+)\s+of\s+(\d+)$/i, (m, a, b) => (USE_TW ? "第 " : "第 ") + a + " / " + b + (USE_TW ? " 輪" : " 轮")],
+        [/^Compare responses from\s+(\d+)\s+models side-by-side to find the best result\.?$/i, (m, n) => (USE_TW ? "並排比較 " : "并排对比 ") + n + (USE_TW ? " 個模型的回應以選出最佳結果。" : " 个模型的回复以选出最佳结果。")],
+        [/^Cost summary:\s*(.+)$/i, (m, n) => (USE_TW ? "費用摘要：" : "费用摘要：") + n],
+        [/^Forked from\s+(.+)$/i, (m, l) => (USE_TW ? "分支自 " : "派生自 ") + l],
+        [/^Open Subagent:\s*(.+)$/i, (m, l) => (USE_TW ? "開啟子代理：" : "打开子智能体：") + l],
+        [/^Select model with\s+(.+)$/i, (m, c) => (USE_TW ? "使用 " : "使用 ") + c + (USE_TW ? " 選擇模型" : " 选择模型")],
+        [/^Send now:\s*(.+)$/i, (m, d) => (USE_TW ? "立即傳送：" : "立即发送：") + d],
+        [/^Skip\s*\(([^)]+)\),\s*Skip All\s*\(([^)]+)\)$/i, (m, k1, k2) => (USE_TW ? "略過 (" : "跳过 (") + k1 + (USE_TW ? ")，全部略過 (" : ")，全部跳过 (") + k2 + ")"],
+        [/^Fix with Agent:\s*(.+)$/i, (m, c) => (USE_TW ? "使用代理修復：" : "使用智能体修复：") + c],
+        [/^App view for\s+(.+)$/i, (m, f) => f + (USE_TW ? " 的應用檢視" : " 的应用视图")],
+        [/^Artifact image\s+(.+)$/i, (m, n) => (USE_TW ? "產物圖片 " : "工件图片 ") + n],
+        [/^Edit comment:\s*(.+)$/i, (m, c) => (USE_TW ? "編輯評論：" : "编辑评论：") + c],
+        [/^Edit side question title:\s*(.+)$/i, (m, a) => (USE_TW ? "編輯延伸問題標題：" : "编辑侧边问题标题：") + a],
+        [/^Edit\s+(.+?)\s+name$/i, (m, kind) => (USE_TW ? "編輯 " : "编辑 ") + kind + (USE_TW ? " 名稱" : " 名称")],
+        [/^Duplicate\s+(.+?)\s+name$/i, (m, kind) => kind + (USE_TW ? " 名稱重複" : " 名称重复")],
+        [/^Opens external link:\s*(.+)$/i, (m, url) => (USE_TW ? "開啟外部連結：" : "打开外部链接：") + url],
+        [/^Open URL in system browser:\s*(.+)$/i, (m, url) => (USE_TW ? "在系統瀏覽器中開啟網址：" : "在系统浏览器中打开链接：") + url],
+        [/^Scroll to:\s*(.+?)\s+on page\s+(\d+)$/i, (m, b, c) => (USE_TW ? "捲動至第 " : "滚动至第 ") + c + (USE_TW ? " 頁的 " : " 页的 ") + b],
+        [/^Page\s+(\d+)\s+failed to load$/i, (m, p) => (USE_TW ? "第 " : "第 ") + p + (USE_TW ? " 頁載入失敗" : " 页加载失败")],
+        [/^No\s+(.+?)\s+matching your search$/i, (m, items) => (USE_TW ? "找不到符合搜尋條件的 " : "没有匹配搜索条件的 ") + items],
+        [/^This deletes\s+(\d+)\s+call recordings?\s*\((.+)\)$/i, (m, n, rest) => (USE_TW ? "這將刪除 " : "这将删除 ") + n + (USE_TW ? " 筆通話錄音 (" : " 条通话录音 (") + rest + ")"],
+        [/^Failed to save project Google3 configuration:\s*(.+)$/i, (m, err) => (USE_TW ? "儲存專案 Google3 設定失敗：" : "保存项目 Google3 配置失败：") + err],
+        [/^Failed to save project permissions:\s*(.+)$/i, (m, err) => (USE_TW ? "儲存專案權限失敗：" : "保存项目权限失败：") + err],
+        [/^Failed to save settings:\s*(.+)$/i, (m, err) => (USE_TW ? "儲存設定失敗：" : "保存设置失败：") + err],
+        [/^Failed to resolve folder:\s*(.+)$/i, (m, rest) => (USE_TW ? "解析資料夾失敗：" : "解析文件夹失败：") + rest],
+        [/^Failed to unarchive project:\s*(.+)$/i, (m, err) => (USE_TW ? "取消封存專案失敗：" : "取消归档项目失败：") + err],
+        [/^Failed to select workspace:\s*(.+)$/i, (m, err) => (USE_TW ? "選取工作區失敗：" : "选择工作区失败：") + err],
+        [/^Failed to (save|update)\s+"(.+?)"\.?$/i, (m, verb, name) => (/^save$/i.test(verb) ? (USE_TW ? "儲存" : "保存") : (USE_TW ? "更新" : "更新")) + (USE_TW ? "「" : "“") + name + (USE_TW ? "」失敗" : "”失败")],
+        [/^Failed to (delete|archive|create|load)\s+(.+?)(?::\s*(.+))?$/i, (m, verb, target, err) => {
+            const vMap = USE_TW
+                ? { delete: '刪除', archive: '封存', create: '建立', load: '載入' }
+                : { delete: '删除', archive: '归档', create: '创建', load: '加载' };
+            return (vMap[verb.toLowerCase()] || verb) + " " + target + (USE_TW ? " 失敗" : " 失败") + (err ? ("：" + err) : "");
+        }],
+        [/^(Couldn't|Failed to)\s+(.+?)\s+conversation$/i, (m, _p, act) => (USE_TW ? "無法 " : "无法 ") + act + (USE_TW ? " 對話" : " 会话")],
+        [/^Error while\s+(.+)$/i, (m, act) => act + (USE_TW ? " 時發生錯誤" : " 时发生错误")],
     ];
 
     function translateExactOrDynamic(t) {
@@ -771,6 +861,9 @@
         if (!p) return null;
         const pText = dfsParentTexts.get(p) || originalParentTexts.get(p) || p.textContent || '';
 
+        if (valNorm === 'now' && typeof p.closest === 'function' && p.closest('[data-testid="conversation-row-sidebar"]')) {
+            return USE_TW ? "剛剛" : "刚刚";
+        }
         if (/^(\d+)(s|m|h|d|w|mo|yr)$/i.test(valNorm)) {
             return valNorm.replace(/^(\d+)(s|m|h|d|w|mo|yr)$/i, (match, num, unit) => {
                 const pair = UNIT_MAP[unit.toLowerCase()];
