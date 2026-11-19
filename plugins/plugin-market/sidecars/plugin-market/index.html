@@ -160,6 +160,11 @@
     <button class="tab" data-tab="market" role="tab" type="button">插件市场 <span id="cnt-market" class="badge">0</span></button>
   </div>
 
+  <div id="update-banner" class="update-banner" hidden>
+    <span id="update-banner-text"></span>
+    <button id="banner-update-all" class="btn warn" type="button">全部更新</button>
+  </div>
+
   <div id="feedback" class="feedback" hidden></div>
 
   <div class="toolbar">
@@ -187,6 +192,9 @@
 
   const listEl = document.getElementById('list');
   const feedbackEl = document.getElementById('feedback');
+  const updateBannerEl = document.getElementById('update-banner');
+  const updateBannerText = document.getElementById('update-banner-text');
+  const bannerUpdateAllBtn = document.getElementById('banner-update-all');
   const searchEl = document.getElementById('search');
   const refreshBtn = document.getElementById('refresh');
   const updateAllBtn = document.getElementById('update-all');
@@ -250,29 +258,32 @@
       const statusPill = p.enabled
         ? '<span class="pill ok">已启用</span>'
         : '<span class="pill">已停用</span>';
+      const updatePill = p.hasUpdate
+        ? `<span class="pill update">有更新 v${esc(p.remoteVersion)}</span>`
+        : '';
       const updateBtn = p.repo
         ? (p.hasUpdate
             ? `<button class="btn warn" data-act="install" data-name="${esc(p.name)}" data-repo="${esc(p.repo)}" data-branch="${esc(p.branch)}" data-path="${esc(p.remotePath)}" ${busy ? 'disabled' : ''}>更新至 v${esc(p.remoteVersion)}</button>`
             : `<button class="btn ghost" data-act="install" data-name="${esc(p.name)}" data-repo="${esc(p.repo)}" data-branch="${esc(p.branch)}" data-path="${esc(p.remotePath)}" ${busy ? 'disabled' : ''}>更新</button>`)
         : '';
-      const openDirBtn = `<button class="btn ghost" data-act="open-dir" data-name="${esc(p.name)}" ${busy ? 'disabled' : ''}>打开目录</button>`;
       const toggleBtn = p.enabled
         ? `<button class="btn ghost" data-act="disable" data-name="${esc(p.name)}" ${busy ? 'disabled' : ''}>停用</button>`
         : `<button class="btn primary" data-act="enable" data-name="${esc(p.name)}" ${busy ? 'disabled' : ''}>启用</button>`;
       const uninstallBtn = `<button class="btn danger" data-act="uninstall" data-name="${esc(p.name)}" ${busy ? 'disabled' : ''}>卸载</button>`;
-      return `<article class="card${p.enabled ? '' : ' disabled'}">
+      return `<article class="card${p.enabled ? '' : ' disabled'}${p.hasUpdate ? ' has-update' : ''}">
         <div class="card-top">
           <div class="title-row">
             <span class="name">${esc(p.displayName)}</span>
             <span class="ver">v${esc(p.version)}</span>
             ${statusPill}
+            ${updatePill}
           </div>
           <span class="pill">${esc(p.type)}</span>
         </div>
         <p class="desc">${esc(p.description || '暂无简介')}</p>
         <div class="card-foot">
           <span class="meta">${esc(p.name)}</span>
-          <div class="actions">${openDirBtn}${updateBtn}${toggleBtn}${uninstallBtn}</div>
+          <div class="actions">${updateBtn}${toggleBtn}${uninstallBtn}</div>
         </div>
       </article>`;
     }).join('');
@@ -288,7 +299,7 @@
           : '';
       const btnText = p.hasUpdate ? '更新' : p.installed ? '重装' : '安装';
       const btnCls = p.hasUpdate ? 'btn warn' : p.installed ? 'btn ghost' : 'btn primary';
-      return `<article class="card">
+      return `<article class="card${p.hasUpdate ? ' has-update' : ''}">
         <div class="card-top">
           <div class="title-row">
             <span class="name">${esc(p.displayName)}</span>
@@ -320,6 +331,7 @@
   function render() {
     refreshBtn.disabled = busy;
     updateAllBtn.disabled = busy;
+    bannerUpdateAllBtn.disabled = busy;
     selfUpdateBtn.disabled = busy;
     if (!state) return;
     updateAllBtn.hidden = !state.updateCount;
@@ -327,7 +339,15 @@
     selfUpdateBtn.hidden = !state.selfUpdate;
     if (state.selfUpdate) selfUpdateBtn.textContent = `更新市场 v${state.selfUpdate.remoteVersion}`;
 
-    cntInstalled.textContent = String(state.installed.length);
+    const updatable = state.installed.filter((p) => p.hasUpdate);
+    updateBannerEl.hidden = updatable.length === 0;
+    if (updatable.length > 0) {
+      const names = updatable.map((p) => `${p.displayName} v${p.remoteVersion}`).join('、');
+      updateBannerText.innerHTML = `<strong>发现 ${updatable.length} 个更新：</strong>${esc(names)}`;
+    }
+
+    cntInstalled.textContent = state.updateCount > 0 ? `${state.installed.length} · ${state.updateCount}可更` : String(state.installed.length);
+    cntInstalled.classList.toggle('warn', state.updateCount > 0);
     cntMarket.textContent = state.updateCount > 0 ? `${state.market.length} · ${state.updateCount}可更` : String(state.market.length);
     cntMarket.classList.toggle('warn', state.updateCount > 0);
 
@@ -346,7 +366,9 @@
 
   searchEl.addEventListener('input', () => { query = searchEl.value.trim(); render(); });
   refreshBtn.addEventListener('click', () => run('state', { force: true }, '正在刷新插件列表与远端目录…', '列表已刷新。'));
-  updateAllBtn.addEventListener('click', () => run('update-all', {}, '正在更新全部有新版本的插件…', '全部插件已更新到最新版本。'));
+  const doUpdateAll = () => run('update-all', {}, '正在更新全部有新版本的插件…', '全部插件已更新到最新版本。');
+  updateAllBtn.addEventListener('click', doUpdateAll);
+  bannerUpdateAllBtn.addEventListener('click', doUpdateAll);
   selfUpdateBtn.addEventListener('click', () => {
     if (!state?.selfUpdate) return;
     const s = state.selfUpdate;
