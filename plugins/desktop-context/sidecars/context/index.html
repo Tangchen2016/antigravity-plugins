@@ -440,6 +440,146 @@
     color: var(--c-danger);
     border-color: color-mix(in srgb, var(--c-danger) 45%, transparent);
   }
+
+  /* compact summary bar + modal manager for skills & MCP */
+  .mgr-section { margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--line); }
+  .mgr-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+  }
+  .mgr-left {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: .04em;
+    color: var(--dim);
+    min-width: 0;
+  }
+  .mgr-right { display: inline-flex; align-items: center; gap: 6px; flex: none; }
+  .mgr-sub { font-size: 11px; color: var(--dim); }
+  .mgr-btn {
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 6px;
+    color: var(--fg);
+    background: var(--surface);
+    border: 1px solid var(--line);
+  }
+  .mgr-btn:hover { background: var(--surface-hover); }
+
+  .modal-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 30;
+    background: rgba(0, 0, 0, .48);
+    backdrop-filter: blur(2px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 12px;
+  }
+  .modal-backdrop[hidden] { display: none; }
+  .modal {
+    width: 100%;
+    max-width: 440px;
+    max-height: calc(100vh - 24px);
+    display: flex;
+    flex-direction: column;
+    background: var(--popover, var(--card, var(--background, #202124)));
+    color: var(--fg);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    box-shadow: 0 14px 38px rgba(0, 0, 0, .38);
+    overflow: hidden;
+  }
+  .modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--line);
+  }
+  .modal-tabs { display: inline-flex; gap: 4px; }
+  .modal-tab {
+    font-size: 12px;
+    font-weight: 500;
+    padding: 4px 10px;
+    border-radius: 7px;
+    border: 1px solid transparent;
+    color: var(--dim);
+    background: transparent;
+  }
+  .modal-tab.active {
+    color: var(--fg);
+    background: var(--surface-hover);
+    border-color: var(--line);
+  }
+  .modal-close {
+    width: 24px;
+    height: 24px;
+    padding: 0;
+    justify-content: center;
+    border-radius: 6px;
+    font-size: 15px;
+    line-height: 1;
+  }
+  .modal-toolbar {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+    padding: 9px 12px;
+    border-bottom: 1px solid var(--line);
+  }
+  .modal-search {
+    width: 100%;
+    font: inherit;
+    font-size: 12px;
+    color: var(--fg);
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 7px;
+    padding: 5px 9px;
+    outline: none;
+  }
+  .modal-search:focus { border-color: color-mix(in srgb, var(--c-agent) 65%, transparent); }
+  .modal-filters { display: flex; align-items: center; justify-content: space-between; gap: 6px; }
+  .filter-pills { display: inline-flex; gap: 4px; }
+  .filter-pill {
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 999px;
+    border: 1px solid var(--line);
+    color: var(--dim);
+    background: transparent;
+  }
+  .filter-pill.active {
+    color: var(--fg);
+    background: var(--surface-hover);
+    border-color: color-mix(in srgb, var(--dim) 55%, transparent);
+  }
+  .modal-body {
+    flex: 1 1 auto;
+    overflow-y: auto;
+    padding: 6px 12px 10px;
+  }
+  .modal-body .files { margin: 0; }
+  .modal-empty {
+    margin: 26px 0;
+    text-align: center;
+    font-size: 12px;
+    color: var(--dim);
+  }
+  .modal-footer {
+    padding: 7px 12px;
+    border-top: 1px solid var(--line);
+    font-size: 11px;
+    color: var(--dim);
+  }
   .files .dir {
     display: block; font-size: 11px; color: var(--dim);
     overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
@@ -462,6 +602,30 @@
   <span></span>
 </div>
 <div id="toast" class="toast" role="status" hidden></div>
+<div id="mgr-modal" class="modal-backdrop" hidden>
+  <div class="modal" role="dialog" aria-modal="true" aria-label="管理技能与 MCP 服务">
+    <div class="modal-header">
+      <div class="modal-tabs" role="tablist">
+        <button type="button" class="modal-tab" data-tab="skill" role="tab">技能</button>
+        <button type="button" class="modal-tab" data-tab="mcp" role="tab">MCP 服务</button>
+      </div>
+      <button type="button" class="modal-close" id="mgr-close" title="关闭（Esc）" aria-label="关闭">×</button>
+    </div>
+    <div class="modal-toolbar">
+      <input type="search" id="mgr-search" class="modal-search" placeholder="搜索名称、来源或路径…" autocomplete="off">
+      <div class="modal-filters">
+        <div class="filter-pills">
+          <button type="button" class="filter-pill active" data-filter="all">全部</button>
+          <button type="button" class="filter-pill" data-filter="enabled">已启用</button>
+          <button type="button" class="filter-pill" data-filter="disabled">已停用</button>
+        </div>
+        <span id="mgr-count" class="mgr-sub num"></span>
+      </div>
+    </div>
+    <div id="mgr-body" class="modal-body"></div>
+    <div class="modal-footer">切换启停状态后，将在下一轮对话中生效；内置技能不支持停用。</div>
+  </div>
+</div>
 
 <script>
 (() => {
@@ -510,6 +674,11 @@
   const tooltipName = tooltip.querySelector('strong');
   const tooltipValue = tooltip.querySelector('span');
   const toastEl = document.getElementById('toast');
+  const modalBackdrop = document.getElementById('mgr-modal');
+  const modalBody = document.getElementById('mgr-body');
+  const modalSearch = document.getElementById('mgr-search');
+  const modalCount = document.getElementById('mgr-count');
+  const modalClose = document.getElementById('mgr-close');
   const integer = new Intl.NumberFormat('zh-CN');
   let workspace = '';
   let report = null;
@@ -518,6 +687,8 @@
   let activeDot = null;
   let activeSegment = null;
   let toastTimer = null;
+  let modalTab = 'skill';
+  let modalFilter = 'all';
   const openGroups = new Map();
 
   function showToast(msg, isError = false) {
@@ -698,50 +869,102 @@
     const items = Array.isArray(r.skills) && r.skills.length ? r.skills : null;
     if (!items) return files('skill', '技能文件', '/skill', r.skill_files);
     const enabledCount = items.filter((s) => s.enabled !== false).length;
-    const isOpen = openGroups.has('skill') ? openGroups.get('skill') : items.length <= 6;
-    const totalTok = items.reduce((sum, s) => sum + (s.tokens > 0 ? s.tokens : 0), 0);
+    const loadedItems = items.filter((s) => s.loaded);
+    const totalTok = loadedItems.reduce((sum, s) => sum + (s.tokens > 0 ? s.tokens : 0), 0);
     const countText = enabledCount < items.length ? `${enabledCount}/${items.length}` : String(items.length);
-    const sumRight = totalTok > 0 ? `${fmtTok(totalTok)} · /skill` : '/skill';
-    const rows = items.map((s, idx) => {
-      const enabled = s.enabled !== false;
-      const loadedTag = s.loaded ? '<span class="loaded-tag">已加载</span>' : '';
-      const disabledTag = !enabled ? '<span class="disabled-tag">已停用</span>' : '';
+    const tokHint = totalTok > 0 ? `<span class="mgr-sub num">${fmtTok(totalTok)}</span>` : '';
+    const loadedRows = loadedItems.map((s) => {
       const meta = [s.source, s.path].filter(Boolean).join(' · ');
-      const toggleBtn = s.toggle_kind
-        ? `<button type="button" class="switch${enabled ? ' on' : ''}" role="switch" aria-checked="${enabled}" data-toggle="skill" data-idx="${idx}" title="${enabled ? '停用此技能（下一轮生效）' : '启用此技能（下一轮生效）'}"></button>`
-        : '';
-      const tokEl = s.tokens > 0 ? `<span class="tok num">${fmtTok(s.tokens)}</span>` : '';
-      return `<li class="${enabled ? '' : 'is-disabled'}" title="${esc(s.path || s.name)}"><span class="name"><span class="name-row"><span>${esc(s.name)}</span>${loadedTag}${disabledTag}</span><span class="dir">${esc(meta)}</span></span>`
-        + `<span class="item-right">${tokEl}${toggleBtn}</span></li>`;
+      return `<li title="${esc(s.path || s.name)}"><span class="name"><span class="name-row"><span>${esc(s.name)}</span><span class="loaded-tag">已加载</span></span><span class="dir">${esc(meta)}</span></span>`
+        + `<span class="tok num">${s.tokens > 0 ? fmtTok(s.tokens) : ''}</span></li>`;
     }).join('');
-    return `<details class="file-group" data-group="skill"${isOpen ? ' open' : ''}>
-      <summary><span class="sum-left">${CHEV_ICON}<span>技能</span><span class="count-pill num">${countText}</span></span><span class="sum-right num">${sumRight}</span></summary>
-      <ul class="files">${rows}</ul>
-    </details>`;
+    return `<div class="mgr-section">
+      <div class="mgr-head">
+        <span class="mgr-left"><span>技能</span><span class="count-pill num">${countText}</span></span>
+        <span class="mgr-right">${tokHint}<button type="button" class="mgr-btn" data-open-modal="skill">管理</button></span>
+      </div>
+      ${loadedRows ? `<ul class="files">${loadedRows}</ul>` : ''}
+    </div>`;
   }
 
   function mcpServers(items) {
     if (!items || !items.length) return '';
     const enabledCount = items.filter((s) => s.enabled !== false).length;
-    const isOpen = openGroups.has('mcp') ? openGroups.get('mcp') : items.length <= 6;
     const totalTok = items.reduce((sum, s) => sum + (s.tokens > 0 ? s.tokens : 0), 0);
     const countText = enabledCount < items.length ? `${enabledCount}/${items.length}` : String(items.length);
-    const sumRight = totalTok > 0 ? `${fmtTok(totalTok)} · MCP` : 'MCP';
-    const rows = items.map((s, idx) => {
-      const enabled = s.enabled !== false;
+    const tokHint = totalTok > 0 ? `<span class="mgr-sub num">${fmtTok(totalTok)}</span>` : '';
+    return `<div class="mgr-section">
+      <div class="mgr-head">
+        <span class="mgr-left"><span>MCP 服务</span><span class="count-pill num">${countText}</span></span>
+        <span class="mgr-right">${tokHint}<button type="button" class="mgr-btn" data-open-modal="mcp">管理</button></span>
+      </div>
+    </div>`;
+  }
+
+  function renderModal() {
+    if (modalBackdrop.hidden || !report) return;
+    const skills = Array.isArray(report.skills) ? report.skills : [];
+    const mcps = Array.isArray(report.mcp_servers) ? report.mcp_servers : [];
+    modalBackdrop.querySelectorAll('.modal-tab').forEach((tab) => {
+      const isSkill = tab.dataset.tab === 'skill';
+      tab.textContent = isSkill ? `技能 (${skills.length})` : `MCP 服务 (${mcps.length})`;
+      tab.classList.toggle('active', tab.dataset.tab === modalTab);
+    });
+    modalBackdrop.querySelectorAll('.filter-pill').forEach((pill) => {
+      pill.classList.toggle('active', pill.dataset.filter === modalFilter);
+    });
+
+    const q = modalSearch.value.trim().toLowerCase();
+    const list = modalTab === 'mcp' ? mcps : skills;
+    const filtered = list
+      .map((item, idx) => ({ item, idx }))
+      .filter(({ item }) => {
+        const enabled = item.enabled !== false;
+        if (modalFilter === 'enabled' && !enabled) return false;
+        if (modalFilter === 'disabled' && enabled) return false;
+        if (!q) return true;
+        const hay = `${item.name || ''} ${item.source || ''} ${item.path || ''} ${item.transport || ''}`.toLowerCase();
+        return hay.includes(q);
+      });
+
+    const enabledTotal = list.filter((x) => x.enabled !== false).length;
+    modalCount.textContent = `已启用 ${enabledTotal}/${list.length}`;
+
+    if (!filtered.length) {
+      modalBody.innerHTML = `<p class="modal-empty">${q ? '没有匹配项' : (modalTab === 'mcp' ? '暂未检测到 MCP 服务' : '暂未检测到技能')}</p>`;
+      return;
+    }
+
+    const scrollTop = modalBody.scrollTop;
+    const rows = filtered.map(({ item, idx }) => {
+      const enabled = item.enabled !== false;
+      const loadedTag = modalTab === 'skill' && item.loaded ? '<span class="loaded-tag">已加载</span>' : '';
       const disabledTag = !enabled ? '<span class="disabled-tag">已停用</span>' : '';
-      const meta = [s.source, s.transport].filter(Boolean).join(' · ');
-      const toggleBtn = s.toggle_kind
-        ? `<button type="button" class="switch${enabled ? ' on' : ''}" role="switch" aria-checked="${enabled}" data-toggle="mcp" data-idx="${idx}" title="${enabled ? '停用此 MCP（下一轮生效）' : '启用此 MCP（下一轮生效）'}"></button>`
+      const meta = modalTab === 'mcp'
+        ? [item.source, item.transport].filter(Boolean).join(' · ')
+        : [item.source, item.path].filter(Boolean).join(' · ');
+      const toggleBtn = item.toggle_kind
+        ? `<button type="button" class="switch${enabled ? ' on' : ''}" role="switch" aria-checked="${enabled}" data-toggle="${modalTab}" data-idx="${idx}" title="${enabled ? '停用（下一轮生效）' : '启用（下一轮生效）'}"></button>`
         : '';
-      const tokEl = s.tokens > 0 ? `<span class="tok num">${fmtTok(s.tokens)}</span>` : '';
-      return `<li class="${enabled ? '' : 'is-disabled'}" title="${esc(s.name)}"><span class="name"><span class="name-row"><span>${esc(s.name)}</span>${disabledTag}</span><span class="dir">${esc(meta)}</span></span>`
+      const tokEl = item.tokens > 0 ? `<span class="tok num">${fmtTok(item.tokens)}</span>` : '';
+      return `<li class="${enabled ? '' : 'is-disabled'}" title="${esc(item.path || item.name)}"><span class="name"><span class="name-row"><span>${esc(item.name)}</span>${loadedTag}${disabledTag}</span><span class="dir">${esc(meta)}</span></span>`
         + `<span class="item-right">${tokEl}${toggleBtn}</span></li>`;
     }).join('');
-    return `<details class="file-group" data-group="mcp"${isOpen ? ' open' : ''}>
-      <summary><span class="sum-left">${CHEV_ICON}<span>MCP 服务</span><span class="count-pill num">${countText}</span></span><span class="sum-right num">${sumRight}</span></summary>
-      <ul class="files">${rows}</ul>
-    </details>`;
+    modalBody.innerHTML = `<ul class="files">${rows}</ul>`;
+    modalBody.scrollTop = scrollTop;
+  }
+
+  function openModal(tab) {
+    modalTab = tab === 'mcp' ? 'mcp' : 'skill';
+    modalFilter = 'all';
+    modalSearch.value = '';
+    modalBackdrop.hidden = false;
+    renderModal();
+    modalSearch.focus();
+  }
+
+  function closeModal() {
+    modalBackdrop.hidden = true;
   }
 
   function pctClass(pct) {
@@ -859,6 +1082,7 @@
       lastJson = json;
       report = data;
       render(data);
+      renderModal();
     } catch {
       const dot = document.querySelector('.live');
       if (dot) {
@@ -939,8 +1163,35 @@
   }
 
   main.addEventListener('click', (event) => {
+    const openBtn = event.target.closest('button[data-open-modal]');
+    if (openBtn) return openModal(openBtn.dataset.openModal);
     const btn = event.target.closest('button.switch[data-toggle]');
     if (btn) handleToggle(btn);
+  });
+
+  modalBackdrop.addEventListener('click', (event) => {
+    if (event.target === modalBackdrop) return closeModal();
+    const tab = event.target.closest('.modal-tab[data-tab]');
+    if (tab) {
+      modalTab = tab.dataset.tab;
+      modalFilter = 'all';
+      renderModal();
+      return;
+    }
+    const pill = event.target.closest('.filter-pill[data-filter]');
+    if (pill) {
+      modalFilter = pill.dataset.filter;
+      renderModal();
+      return;
+    }
+    const sw = event.target.closest('button.switch[data-toggle]');
+    if (sw) handleToggle(sw);
+  });
+
+  modalClose.addEventListener('click', closeModal);
+  modalSearch.addEventListener('input', renderModal);
+  document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape' && !modalBackdrop.hidden) closeModal();
   });
 
   main.addEventListener('pointerover', (event) => {
