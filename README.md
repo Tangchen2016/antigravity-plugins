@@ -2,27 +2,36 @@
 
 用于独立版 Google Antigravity App 的插件合集。
 
+## 一键安装
+
+安装全部插件：
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/Tangchen2016/antigravity-plugins/main/install.sh | bash
+```
+
+> 再次运行同一条命令即可更新到最新版本；若已克隆仓库到本地，也可直接执行 `./install.sh` 或 `./install.sh <插件名>`。
+
 ## 插件列表
 
-| 插件 | 目录 | 类型 | 核心功能 | 入口 / 生效方式 |
+| 插件 | 类型 | 核心功能 | 入口 / 生效方式 | 一键安装 |
 | :--- | :--- | :--- | :--- | :--- |
-| **上下文用量** | `plugins/desktop-context/` | 侧边栏扩展 | 中文展示模型名称、上下文点阵图、分类 Token 占用、检查点与上下文文件，支持悬停联动高亮和一键复制 CLI 文本报告 | 会话右侧 **概览 → 扩展 → 上下文用量** |
-| **语言包管理** | `plugins/language-packs/` | 侧边栏扩展 | 内置简/繁体词库，支持一键切换、导入 JSON 热更新词库（约 3 秒生效）与恢复基础词库 | 会话右侧 **概览 → 扩展 → 语言包管理** |
-| **进度播报与节奏控制** | `plugins/progress-updates/` | 全局规则 | 让 Agent 按关键里程碑用引用块弱化播报进展，常规步骤自主推进，仅在分叉/高风险/阻塞节点暂停确认 | 放入全局插件目录后下一轮对话自动生效 |
+| **上下文用量** (`desktop-context`) | 侧边栏扩展 | 中文展示模型名称、上下文点阵图、分类 Token 占用、检查点与上下文文件，支持双向悬停联动和一键复制 CLI 文本报告 | 会话右侧 **概览 → 扩展 → 上下文用量** | `curl -fsSL https://raw.githubusercontent.com/Tangchen2016/antigravity-plugins/main/install.sh \| bash -s -- desktop-context` |
+| **语言包管理** (`language-packs`) | 侧边栏扩展 | 内置简/繁体词库，支持一键切换、导入 JSON 热更新词库（约 3 秒生效）与恢复基础词库 | 会话右侧 **概览 → 扩展 → 语言包管理** | `curl -fsSL https://raw.githubusercontent.com/Tangchen2016/antigravity-plugins/main/install.sh \| bash -s -- language-packs` |
+| **进度播报与节奏控制** (`progress-updates`) | 全局规则 | 让 Agent 按关键里程碑用引用块弱化播报进展，常规步骤自主推进，仅在分叉/高风险/阻塞节点暂停确认 | 下一轮对话自动生效 | `curl -fsSL https://raw.githubusercontent.com/Tangchen2016/antigravity-plugins/main/install.sh \| bash -s -- progress-updates` |
 
 ---
 
 ## 上下文用量
 
-`plugins/desktop-context/` 提供中文上下文用量面板，显示模型名称、上下文占用图、分类用量、检查点和上下文文件，并支持复制原始 CLI 格式的文本报告。将指针移到圆点上，或用 Tab 聚焦，可查看该颜色对应的用量和占比。百分比以模型的原生上下文窗口为分母。
+`plugins/desktop-context/` 提供中文上下文用量面板，显示模型名称、上下文占用图、分类用量、检查点和上下文文件，并支持复制原始 CLI 格式的文本报告。将指针移到圆点或分类行上，或用 Tab 聚焦，可双向高亮查看该分类对应的用量和占比。百分比以模型的原生上下文窗口为分母。
 
 ### 安装
 
-Antigravity App 需要能在 `PATH` 上找到 Python 3.10 或更新版本。在仓库根目录执行：
+Antigravity App 需要能在 `PATH` 上找到 Python 3.10 或更新版本。执行：
 
 ```bash
-mkdir -p ~/.gemini/config/plugins
-cp -R plugins/desktop-context ~/.gemini/config/plugins/
+curl -fsSL https://raw.githubusercontent.com/Tangchen2016/antigravity-plugins/main/install.sh | bash -s -- desktop-context
 ```
 
 打开 **个性化定制 → 已安装**，查看 **上下文用量**。在会话右侧打开 **概览 → 扩展 → 上下文用量**。如果界面仍显示旧插件，关闭旧标签页后重新进入「已安装」。
@@ -33,11 +42,10 @@ cp -R plugins/desktop-context ~/.gemini/config/plugins/
 
 `plugins/language-packs/` 是与「上下文用量」独立的扩展。它内置简体和繁体词库，从本机 `antigravity2-cn` 的词库整理而来。
 
-在仓库根目录复制扩展到 Antigravity 的全局插件目录：
+### 安装
 
 ```bash
-mkdir -p ~/.gemini/config/plugins
-cp -R plugins/language-packs ~/.gemini/config/plugins/
+curl -fsSL https://raw.githubusercontent.com/Tangchen2016/antigravity-plugins/main/install.sh | bash -s -- language-packs
 ```
 
 在会话中打开 **概览 → 扩展 → 语言包管理**。每次可启用一种语言包。用 **更新词库** 导入 JSON，格式为 `{"英文原文":"译文"}`。启用中的语言包更新后会立即写入热更新目录，主窗口通常在约 3 秒内刷新。停用语言包后会回到基础词库。
@@ -56,11 +64,8 @@ cp -R plugins/language-packs ~/.gemini/config/plugins/
 
 ### 安装
 
-在仓库根目录执行：
-
 ```bash
-mkdir -p ~/.gemini/config/plugins
-cp -R plugins/progress-updates ~/.gemini/config/plugins/
+curl -fsSL https://raw.githubusercontent.com/Tangchen2016/antigravity-plugins/main/install.sh | bash -s -- progress-updates
 ```
 
 无需重启或新开会话，下一轮对话即自动生效；可在 **个性化定制 → 已安装** 中随时启用或停用。
