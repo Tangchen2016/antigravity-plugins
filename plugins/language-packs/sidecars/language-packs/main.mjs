@@ -1,5 +1,5 @@
 import { execFile } from 'node:child_process';
-import { existsSync, openSync, readFileSync, readSync, closeSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -28,25 +28,6 @@ const manager = createPackManager({
   bundledDirectory: fileURLToPath(new URL('../../dictionaries/', import.meta.url)),
 });
 
-function readAsarEntry(asarPath, relPath) {
-  const layout = readAsarLayout(asarPath);
-  const parts = relPath.split('/');
-  let node = layout.header;
-  for (const part of parts) {
-    node = node?.files?.[part];
-    if (!node) return null;
-  }
-  if (node.offset === undefined || !node.size) return null;
-  const fd = openSync(asarPath, 'r');
-  try {
-    const buf = Buffer.alloc(node.size);
-    readSync(fd, buf, 0, node.size, layout.dataStartOffset + Number(node.offset));
-    return buf.toString('utf8');
-  } finally {
-    closeSync(fd);
-  }
-}
-
 function getRuntimeStatus() {
   const isMac = process.platform === 'darwin';
   const resourcesDir = '/Applications/Antigravity.app/Contents/Resources';
@@ -55,8 +36,9 @@ function getRuntimeStatus() {
   let installed = false;
   if (appFound) {
     try {
-      const preload = readAsarEntry(asarPath, 'dist/preload.js') || '';
-      const utils = readAsarEntry(asarPath, 'dist/utils.js') || '';
+      const layout = readAsarLayout(asarPath);
+      const preload = layout.files.get('dist/preload.js')?.body?.toString('utf8') || '';
+      const utils = layout.files.get('dist/utils.js')?.body?.toString('utf8') || '';
       const normalizedDir = directory.replace(/\/+$/, '');
       installed = preload.includes('ANTIGRAVITY CHINESE LOCALIZATION START')
         && (utils.includes(normalizedDir) || utils.includes(JSON.stringify(normalizedDir)));

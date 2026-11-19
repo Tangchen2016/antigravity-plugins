@@ -371,7 +371,7 @@
   "Are you sure you want to delete this hook card?": "您确定要删除此钩子卡片吗？",
   "Are you sure you want to delete this side question? This action cannot be undone.": "确定要删除此侧边提问吗？此操作无法撤销。",
   "Are you sure you want to quit?": "您确定要退出吗？",
-  "Argon that may offload routine steps to Hydrogen. Same Argon-level quality, fewer tokens used.": "Argon 可将常规步骤交给 Hydrogen 处理，保持 Argon 级别的质量，同时减少 Token 消耗。",
+  "Argon that may offload routine steps to Hydrogen. Same Argon-level quality, fewer tokens used.": "基于 Argon，可将常规步骤分流给 Hydrogen，保持 Argon 同等质量同时减少 Token 消耗。",
   "Arguments Schema": "参数模式 (Schema)",
   "Artifact": "交付件(Artifact)",
   "Artifact Comments": "产物评论",
@@ -647,7 +647,7 @@
   "Capture screenshot": "截取屏幕截图",
   "Captured DOM tree for": "已捕获 DOM 树：",
   "Capturing": "正在捕获",
-  "Carbon that may offload routine steps to Hydrogen. Same Carbon-level quality, fewer tokens used.": "Carbon 可将常规步骤交给 Hydrogen 处理，保持 Carbon 级别的质量，同时减少 Token 消耗。",
+  "Carbon that may offload routine steps to Hydrogen. Same Carbon-level quality, fewer tokens used.": "基于 Carbon，可将常规步骤分流给 Hydrogen，保持 Carbon 同等质量同时减少 Token 消耗。",
   "Cascade Config": "Cascade 配置",
   "Cascade ID": "Cascade ID",
   "Cascade ID:": "Cascade ID：",
@@ -4901,5 +4901,10 @@
   "✓ Target set": "✓ 已设置目标",
   "✓ macOS permissions granted": "✓ macOS 权限已授予",
   "对话 Log": "对话记录",
-  "项目 options": "项目选项"
+  "项目 options": "项目选项",
+  "For most deep reasoning and complex problems": "适用于大多数深度推理与复杂问题",
+  "For speed and efficiency in execution tasks": "兼顾速度与效率的执行型任务",
+  "For your hardest, long-horizon tasks": "适用于最难的长期复杂任务",
+  "The original Gemini 4 model for advanced workflows": "面向高级工作流的经典 Gemini 4 模型",
+  "Neon that may offload routine steps to Hydrogen. Same Neon-level quality, fewer tokens used.": "基于 Neon，可将常规步骤分流给 Hydrogen，保持 Neon 同等质量同时减少 Token 消耗。"
 }
