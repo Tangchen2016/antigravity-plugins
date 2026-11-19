@@ -369,6 +369,77 @@
     line-height: 1.45;
     flex: none;
   }
+  .files .disabled-tag {
+    font-size: 10px; font-weight: 500;
+    color: var(--dim);
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    padding: 0 5px;
+    line-height: 1.45;
+    flex: none;
+  }
+  .files li.is-disabled .name { opacity: .52; }
+  .files .item-right {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    align-self: center;
+  }
+  .switch {
+    position: relative;
+    width: 28px;
+    height: 16px;
+    padding: 0;
+    border-radius: 999px;
+    border: 1px solid var(--line);
+    background: color-mix(in srgb, var(--dim) 26%, transparent);
+    cursor: pointer;
+    flex: none;
+    transition: background .16s ease, border-color .16s ease, opacity .16s ease;
+  }
+  .switch::after {
+    content: '';
+    position: absolute;
+    top: 1.5px;
+    left: 1.5px;
+    width: 11px;
+    height: 11px;
+    border-radius: 50%;
+    background: var(--fg);
+    opacity: .85;
+    transition: transform .16s ease, opacity .16s ease;
+  }
+  .switch.on {
+    background: color-mix(in srgb, var(--c-ok) 72%, transparent);
+    border-color: color-mix(in srgb, var(--c-ok) 85%, transparent);
+  }
+  .switch.on::after {
+    transform: translateX(12px);
+    background: #fff;
+    opacity: 1;
+  }
+  .switch:hover { background: color-mix(in srgb, var(--dim) 38%, transparent); }
+  .switch.on:hover { background: color-mix(in srgb, var(--c-ok) 85%, transparent); }
+  .switch:disabled { opacity: .45; cursor: wait; }
+  .toast {
+    position: fixed;
+    left: 14px;
+    right: 14px;
+    bottom: 12px;
+    z-index: 20;
+    padding: 7px 10px;
+    border-radius: 8px;
+    border: 1px solid var(--line);
+    background: var(--popover, var(--card, var(--background, #202124)));
+    color: var(--fg);
+    font-size: 12px;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, .28);
+  }
+  .toast.error {
+    color: var(--c-danger);
+    border-color: color-mix(in srgb, var(--c-danger) 45%, transparent);
+  }
   .files .dir {
     display: block; font-size: 11px; color: var(--dim);
     overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
@@ -390,6 +461,7 @@
   <strong></strong>
   <span></span>
 </div>
+<div id="toast" class="toast" role="status" hidden></div>
 
 <script>
 (() => {
@@ -437,6 +509,7 @@
   const tooltip = document.getElementById('grid-tooltip');
   const tooltipName = tooltip.querySelector('strong');
   const tooltipValue = tooltip.querySelector('span');
+  const toastEl = document.getElementById('toast');
   const integer = new Intl.NumberFormat('zh-CN');
   let workspace = '';
   let report = null;
@@ -444,7 +517,16 @@
   let gridStats = new Map();
   let activeDot = null;
   let activeSegment = null;
+  let toastTimer = null;
   const openGroups = new Map();
+
+  function showToast(msg, isError = false) {
+    toastEl.textContent = msg;
+    toastEl.classList.toggle('error', isError);
+    toastEl.hidden = false;
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => { toastEl.hidden = true; }, isError ? 3600 : 2200);
+  }
 
   const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
@@ -615,16 +697,22 @@
   function skillsSection(r) {
     const items = Array.isArray(r.skills) && r.skills.length ? r.skills : null;
     if (!items) return files('skill', '技能文件', '/skill', r.skill_files);
-    const loadedCount = items.filter((s) => s.loaded).length;
+    const enabledCount = items.filter((s) => s.enabled !== false).length;
     const isOpen = openGroups.has('skill') ? openGroups.get('skill') : items.length <= 6;
     const totalTok = items.reduce((sum, s) => sum + (s.tokens > 0 ? s.tokens : 0), 0);
-    const countText = loadedCount > 0 ? `${loadedCount}/${items.length}` : String(items.length);
+    const countText = enabledCount < items.length ? `${enabledCount}/${items.length}` : String(items.length);
     const sumRight = totalTok > 0 ? `${fmtTok(totalTok)} · /skill` : '/skill';
-    const rows = items.map((s) => {
-      const tag = s.loaded ? '<span class="loaded-tag">已加载</span>' : '';
+    const rows = items.map((s, idx) => {
+      const enabled = s.enabled !== false;
+      const loadedTag = s.loaded ? '<span class="loaded-tag">已加载</span>' : '';
+      const disabledTag = !enabled ? '<span class="disabled-tag">已停用</span>' : '';
       const meta = [s.source, s.path].filter(Boolean).join(' · ');
-      return `<li title="${esc(s.path || s.name)}"><span class="name"><span class="name-row"><span>${esc(s.name)}</span>${tag}</span><span class="dir">${esc(meta)}</span></span>`
-        + `<span class="tok num">${s.tokens > 0 ? fmtTok(s.tokens) : ''}</span></li>`;
+      const toggleBtn = s.toggle_kind
+        ? `<button type="button" class="switch${enabled ? ' on' : ''}" role="switch" aria-checked="${enabled}" data-toggle="skill" data-idx="${idx}" title="${enabled ? '停用此技能（下一轮生效）' : '启用此技能（下一轮生效）'}"></button>`
+        : '';
+      const tokEl = s.tokens > 0 ? `<span class="tok num">${fmtTok(s.tokens)}</span>` : '';
+      return `<li class="${enabled ? '' : 'is-disabled'}" title="${esc(s.path || s.name)}"><span class="name"><span class="name-row"><span>${esc(s.name)}</span>${loadedTag}${disabledTag}</span><span class="dir">${esc(meta)}</span></span>`
+        + `<span class="item-right">${tokEl}${toggleBtn}</span></li>`;
     }).join('');
     return `<details class="file-group" data-group="skill"${isOpen ? ' open' : ''}>
       <summary><span class="sum-left">${CHEV_ICON}<span>技能</span><span class="count-pill num">${countText}</span></span><span class="sum-right num">${sumRight}</span></summary>
@@ -634,16 +722,24 @@
 
   function mcpServers(items) {
     if (!items || !items.length) return '';
+    const enabledCount = items.filter((s) => s.enabled !== false).length;
     const isOpen = openGroups.has('mcp') ? openGroups.get('mcp') : items.length <= 6;
     const totalTok = items.reduce((sum, s) => sum + (s.tokens > 0 ? s.tokens : 0), 0);
+    const countText = enabledCount < items.length ? `${enabledCount}/${items.length}` : String(items.length);
     const sumRight = totalTok > 0 ? `${fmtTok(totalTok)} · MCP` : 'MCP';
-    const rows = items.map((s) => {
+    const rows = items.map((s, idx) => {
+      const enabled = s.enabled !== false;
+      const disabledTag = !enabled ? '<span class="disabled-tag">已停用</span>' : '';
       const meta = [s.source, s.transport].filter(Boolean).join(' · ');
-      return `<li title="${esc(s.name)}"><span class="name">${esc(s.name)}<span class="dir">${esc(meta)}</span></span>`
-        + `<span class="tok num">${s.tokens > 0 ? fmtTok(s.tokens) : ''}</span></li>`;
+      const toggleBtn = s.toggle_kind
+        ? `<button type="button" class="switch${enabled ? ' on' : ''}" role="switch" aria-checked="${enabled}" data-toggle="mcp" data-idx="${idx}" title="${enabled ? '停用此 MCP（下一轮生效）' : '启用此 MCP（下一轮生效）'}"></button>`
+        : '';
+      const tokEl = s.tokens > 0 ? `<span class="tok num">${fmtTok(s.tokens)}</span>` : '';
+      return `<li class="${enabled ? '' : 'is-disabled'}" title="${esc(s.name)}"><span class="name"><span class="name-row"><span>${esc(s.name)}</span>${disabledTag}</span><span class="dir">${esc(meta)}</span></span>`
+        + `<span class="item-right">${tokEl}${toggleBtn}</span></li>`;
     }).join('');
     return `<details class="file-group" data-group="mcp"${isOpen ? ' open' : ''}>
-      <summary><span class="sum-left">${CHEV_ICON}<span>MCP 服务</span><span class="count-pill num">${items.length}</span></span><span class="sum-right num">${sumRight}</span></summary>
+      <summary><span class="sum-left">${CHEV_ICON}<span>MCP 服务</span><span class="count-pill num">${countText}</span></span><span class="sum-right num">${sumRight}</span></summary>
       <ul class="files">${rows}</ul>
     </details>`;
   }
@@ -812,6 +908,40 @@
     tooltip.style.left = `${Math.max(8, Math.min(left, innerWidth - box.width - 8))}px`;
     tooltip.style.top = `${top}px`;
   }
+
+  async function handleToggle(btn) {
+    if (!report || btn.disabled) return;
+    const kind = btn.dataset.toggle;
+    const idx = Number(btn.dataset.idx);
+    const item = kind === 'mcp' ? report.mcp_servers?.[idx] : report.skills?.[idx];
+    if (!item) return;
+    const nextEnabled = item.enabled === false;
+    btn.disabled = true;
+    try {
+      const endpoint = kind === 'mcp' ? '/api/toggle-mcp' : '/api/toggle-skill';
+      const payload = kind === 'mcp'
+        ? { name: item.name, configPath: item.config_path, toggleKind: item.toggle_kind, pluginName: item.plugin_name, enabled: nextEnabled }
+        : { name: item.name, dirName: item.dir_name, toggleKind: item.toggle_kind, configPath: item.config_path, entryIndex: item.entry_index, skillDir: item.skill_dir, pluginName: item.plugin_name, enabled: nextEnabled };
+      const res = await doFetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json();
+      if (data.error) throw new Error(data.error);
+      lastJson = '';
+      await refresh();
+      showToast(`已${nextEnabled ? '启用' : '停用'}「${item.name}」，下一轮对话生效`);
+    } catch (err) {
+      btn.disabled = false;
+      showToast(err.message || '切换失败', true);
+    }
+  }
+
+  main.addEventListener('click', (event) => {
+    const btn = event.target.closest('button.switch[data-toggle]');
+    if (btn) handleToggle(btn);
+  });
 
   main.addEventListener('pointerover', (event) => {
     const dot = event.target.closest('.dot[data-segment]');

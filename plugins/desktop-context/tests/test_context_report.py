@@ -392,6 +392,36 @@ class ReportTest(unittest.TestCase):
         self.assertIn("pencil", by_mcp)
         self.assertEqual(by_mcp["pencil"]["tokens"], 250)
         self.assertEqual(by_mcp["pencil"]["source"], "全局配置")
+        self.assertTrue(by_mcp["pencil"]["enabled"])
+        self.assertEqual(by_mcp["pencil"]["toggle_kind"], "mcp_config")
+
+    def test_detects_disabled_mcp_and_skills_for_toggle(self):
+        # Disabled skill via SKILL.md.disabled and via skills.json exclude.
+        (self.home / ".gemini" / "skills" / "paused").mkdir(parents=True)
+        (self.home / ".gemini" / "skills" / "paused" / "SKILL.md.disabled").write_text("---\nname: paused-skill\n---\n")
+        (self.home / ".agents" / "skills" / "muted").mkdir(parents=True)
+        (self.home / ".agents" / "skills" / "muted" / "SKILL.md").write_text("---\nname: muted-skill\n---\n")
+        (self.home / ".gemini" / "config").mkdir(parents=True)
+        (self.home / ".gemini" / "config" / "skills.json").write_text(
+            json.dumps({"entries": [{"path": "~/.agents/skills", "exclude": [r"^muted$"]}]})
+        )
+        # Disabled MCP server should remain listed with enabled=False.
+        (self.home / ".gemini" / "settings.json").write_text(
+            json.dumps({"mcpServers": {"pencil": {"command": "/usr/local/bin/pencil-mcp", "disabled": True}}})
+        )
+        self.basic_steps()
+        self.db.generation([group(7, 100, ("0: USER_INPUT", 100))])
+        r = self.report()
+        by_skill = {s["name"]: s for s in r["skills"]}
+        self.assertIn("paused-skill", by_skill)
+        self.assertFalse(by_skill["paused-skill"]["enabled"])
+        self.assertEqual(by_skill["paused-skill"]["toggle_kind"], "skill_file")
+        self.assertIn("muted-skill", by_skill)
+        self.assertFalse(by_skill["muted-skill"]["enabled"])
+        self.assertEqual(by_skill["muted-skill"]["toggle_kind"], "skills_json")
+        by_mcp = {m["name"]: m for m in r["mcp_servers"]}
+        self.assertIn("pencil", by_mcp)
+        self.assertFalse(by_mcp["pencil"]["enabled"])
 
     # --- rendering ---
 

@@ -6,11 +6,11 @@
 // catalog (GetAvailableModels), like the agy CLI.
 
 import { execFile } from 'node:child_process';
-import { existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, renameSync, statSync, writeFileSync } from 'node:fs';
 import http from 'node:http';
 import https from 'node:https';
 import { homedir } from 'node:os';
-import { dirname, join } from 'node:path';
+import { basename, dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { Response, SidecarApp } from 'sidecar_sdk';
 
@@ -149,7 +149,13 @@ async function report(conversationId, workspaceUri) {
   }
   await refreshCatalog();
   const workspace = workspacePath(workspaceUri);
-  const key = [fileStamp(db), fileStamp(`${db}-wal`), workspace, fileStamp(CATALOG_PATH)].join('|');
+  const cfgStamps = [
+    fileStamp(join(GEMINI_DIR, 'config', 'config.json')),
+    fileStamp(join(GEMINI_DIR, 'config', 'mcp_config.json')),
+    fileStamp(join(GEMINI_DIR, 'config', 'skills.json')),
+    fileStamp(join(GEMINI_DIR, 'settings.json')),
+  ];
+  const key = [fileStamp(db), fileStamp(`${db}-wal`), workspace, fileStamp(CATALOG_PATH), ...cfgStamps].join('|');
   const cached = cache.get(conversationId);
   if (cached && cached.key === key) return cached.report;
 
@@ -163,6 +169,125 @@ async function report(conversationId, workspaceUri) {
   return result;
 }
 
+// --- toggle helpers -----------------------------------------------------------
+
+function escapeRegex(str) {
+  return String(str).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function readJsonFile(filePath) {
+  return JSON.parse(readFileSync(filePath, 'utf8'));
+}
+
+function writeJsonFile(filePath, data) {
+  mkdirSync(dirname(filePath), { recursive: true });
+  writeFileSync(filePath, `${JSON.stringify(data, null, 2)}\n`, 'utf8');
+}
+
+function isAllowedMcpConfig(filePath) {
+  const name = basename(filePath);
+  return name === 'mcp_config.json' || name === 'settings.json' || name === '.mcp.json';
+}
+
+function togglePlugin(pluginName, enabled) {
+  if (!pluginName) throw new Error('缺少插件名称。');
+  const cfgPath = join(GEMINI_DIR, 'config', 'config.json');
+  const data = existsSync(cfgPath) ? readJsonFile(cfgPath) : {};
+  if (!data.plugins || typeof data.plugins !== 'object') data.plugins = {};
+  const prev = (data.plugins[pluginName] && typeof data.plugins[pluginName] === 'object') ? data.plugins[pluginName] : {};
+  data.plugins[pluginName] = { ...prev, enabled: Boolean(enabled) };
+  writeJsonFile(cfgPath, data);
+  cache.clear();
+  return { ok: true, enabled: Boolean(enabled) };
+}
+
+function toggleMcp({ name, configPath, toggleKind, pluginName, enabled }) {
+  if (toggleKind === 'plugin') return togglePlugin(pluginName, enabled);
+  if (toggleKind !== 'mcp_config' || !name || !configPath) {
+    throw new Error('该 MCP 服务暂不支持在面板中直接切换。');
+  }
+  const abs = resolve(configPath);
+  if (!isAllowedMcpConfig(abs) || !existsSync(abs)) {
+    throw new Error('未找到对应的 MCP 配置文件。');
+  }
+  const data = readJsonFile(abs);
+  if (!data?.mcpServers || typeof data.mcpServers[name] !== 'object') {
+    throw new Error(`配置文件中未找到 MCP 服务「${name}」。`);
+  }
+  const entry = { ...data.mcpServers[name] };
+  delete entry.enabled;
+  if (enabled) {
+    delete entry.disabled;
+  } else {
+    entry.disabled = true;
+  }
+  data.mcpServers[name] = entry;
+  writeJsonFile(abs, data);
+  cache.clear();
+  return { ok: true, enabled: Boolean(enabled) };
+}
+
+function toggleSkill({ dirName, toggleKind, configPath, entryIndex, skillDir, pluginName, enabled }) {
+  if (toggleKind === 'plugin') return togglePlugin(pluginName, enabled);
+  if (toggleKind === 'skills_json') {
+    const abs = resolve(configPath || '');
+    if (basename(abs) !== 'skills.json' || !existsSync(abs)) {
+      throw new Error('未找到 skills.json 配置文件。');
+    }
+    const data = readJsonFile(abs);
+    const entry = Array.isArray(data?.entries) ? data.entries[Number(entryIndex)] : null;
+    if (!entry || !dirName) throw new Error('未找到对应的技能配置项。');
+    const prev = Array.isArray(entry.exclude) ? entry.exclude.filter((x) => typeof x === 'string') : [];
+    const exact = `^${escapeRegex(dirName)}$`;
+    let next;
+    if (enabled) {
+      next = prev.filter((pat) => {
+        if (pat === exact || pat === dirName) return false;
+        try {
+          return !new RegExp(pat).test(dirName);
+        } catch {
+          return true;
+        }
+      });
+    } else {
+      const already = prev.some((pat) => {
+        try {
+          return new RegExp(pat).test(dirName);
+        } catch {
+          return false;
+        }
+      });
+      next = already ? prev : [...prev, exact];
+    }
+    if (next.length) {
+      entry.exclude = next;
+    } else {
+      delete entry.exclude;
+    }
+    writeJsonFile(abs, data);
+    cache.clear();
+    return { ok: true, enabled: Boolean(enabled) };
+  }
+  if (toggleKind === 'skill_file') {
+    const absDir = resolve(skillDir || '');
+    if (!absDir || basename(dirname(absDir)) !== 'skills' || !existsSync(absDir)) {
+      throw new Error('未找到对应的技能目录。');
+    }
+    const activeFile = join(absDir, 'SKILL.md');
+    const disabledFile = join(absDir, 'SKILL.md.disabled');
+    if (enabled) {
+      if (!existsSync(activeFile) && existsSync(disabledFile)) {
+        renameSync(disabledFile, activeFile);
+      }
+    } else if (existsSync(activeFile)) {
+      renameSync(activeFile, disabledFile);
+    }
+    cache.clear();
+    return { ok: true, enabled: Boolean(enabled) };
+  }
+  throw new Error('内置技能或会话临时技能不支持停用。');
+}
+
 app.page('/', () => new Response(readFileSync(join(HERE, 'index.html'), 'utf8'), { contentType: 'text/html' }));
 
 app.api('/api/report', async (data) => {
@@ -172,6 +297,22 @@ app.api('/api/report', async (data) => {
     return { error: 'failed', message: err.message };
   }
 }, 'GET');
+
+app.api('/api/toggle-mcp', async (data) => {
+  try {
+    return toggleMcp(data || {});
+  } catch (err) {
+    return { error: err.message || '切换 MCP 状态失败。' };
+  }
+}, 'POST');
+
+app.api('/api/toggle-skill', async (data) => {
+  try {
+    return toggleSkill(data || {});
+  } catch (err) {
+    return { error: err.message || '切换技能状态失败。' };
+  }
+}, 'POST');
 
 app.run();
 refreshCatalog();

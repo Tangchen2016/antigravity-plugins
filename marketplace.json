@@ -6,9 +6,9 @@
     {
       "name": "desktop-context",
       "displayName": "上下文用量",
-      "version": "1.0.4",
+      "version": "1.0.5",
       "type": "侧边栏扩展",
-      "description": "中文展示模型名称、上下文点阵图、压缩阈值预警、会话累计与按模型拆分的 Token/缓存消耗、完整技能与已启用 MCP 服务清单。",
+      "description": "中文展示模型名称、上下文点阵图、压缩阈值预警、会话累计与按模型拆分的 Token/缓存消耗，支持技能与 MCP 服务的完整展示与一键启停。",
       "path": "plugins/desktop-context",
       "tags": ["context", "token", "mcp"]
     },

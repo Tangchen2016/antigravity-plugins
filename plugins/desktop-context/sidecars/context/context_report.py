@@ -390,7 +390,7 @@ def _load_disabled_plugins(home: str) -> set[str]:
     return disabled
 
 
-def _read_mcp_config(path: str, source: str) -> list[dict]:
+def _read_mcp_config(path: str, source: str, toggle_kind: str = "mcp_config", plugin_name: str = "", plugin_enabled: bool = True) -> list[dict]:
     items: list[dict] = []
     try:
         with open(path, encoding="utf-8") as fh:
@@ -401,15 +401,26 @@ def _read_mcp_config(path: str, source: str) -> list[dict]:
     if not isinstance(servers, dict):
         return items
     for name, cfg in servers.items():
-        if not isinstance(cfg, dict) or cfg.get("disabled") is True or cfg.get("enabled") is False:
+        if not isinstance(cfg, dict):
             continue
+        cfg_enabled = not (cfg.get("disabled") is True or cfg.get("enabled") is False)
+        enabled = cfg_enabled and plugin_enabled
         transport = "HTTP" if (cfg.get("url") or cfg.get("serverUrl") or cfg.get("httpUrl")) else "Stdio"
-        items.append({"name": name, "source": source, "transport": transport, "tokens": 0})
+        items.append({
+            "name": name,
+            "source": source,
+            "transport": transport,
+            "tokens": 0,
+            "enabled": enabled,
+            "toggle_kind": toggle_kind,
+            "config_path": os.path.abspath(path),
+            "plugin_name": plugin_name,
+        })
     return items
 
 
 def detect_mcp_servers(home: str, workspace: str | None, mcp_tool_items: list[tuple[str, int]], app_dir: str = "antigravity") -> list[dict]:
-    """Collect enabled MCP servers from global/workspace/plugin configs and merge session MCP token items."""
+    """Collect MCP servers (enabled and disabled) from global/workspace/plugin configs and merge session MCP token items."""
     disabled_plugins = _load_disabled_plugins(home)
     servers: dict[str, dict] = {}
 
@@ -439,21 +450,22 @@ def detect_mcp_servers(home: str, workspace: str | None, mcp_tool_items: list[tu
         except OSError:
             continue
         for pdir in names:
-            if pdir in disabled_plugins:
+            if pdir.startswith("."):
                 continue
             pfull = os.path.join(proot, pdir)
             mcp_file = os.path.join(pfull, "mcp_config.json")
             if not os.path.isfile(mcp_file):
                 continue
+            plugin_enabled = pdir not in disabled_plugins
             pjson = os.path.join(pfull, "plugin.json")
             if os.path.isfile(pjson):
                 try:
                     with open(pjson, encoding="utf-8") as fh:
                         if json.load(fh).get("disabled") is True:
-                            continue
+                            plugin_enabled = False
                 except (OSError, ValueError):
                     pass
-            add_all(_read_mcp_config(mcp_file, f"插件 · {pdir}"))
+            add_all(_read_mcp_config(mcp_file, f"插件 · {pdir}", toggle_kind="plugin", plugin_name=pdir, plugin_enabled=plugin_enabled))
 
     for raw_name, tok in mcp_tool_items:
         matched = None
@@ -464,10 +476,19 @@ def detect_mcp_servers(home: str, workspace: str | None, mcp_tool_items: list[tu
         if matched:
             servers[matched]["tokens"] += tok
         elif raw_name:
-            entry = servers.setdefault(raw_name, {"name": raw_name, "source": "当前会话", "transport": "MCP", "tokens": 0})
+            entry = servers.setdefault(raw_name, {
+                "name": raw_name,
+                "source": "当前会话",
+                "transport": "MCP",
+                "tokens": 0,
+                "enabled": True,
+                "toggle_kind": "",
+                "config_path": "",
+                "plugin_name": "",
+            })
             entry["tokens"] += tok
 
-    return sorted(servers.values(), key=lambda x: (-x["tokens"], x["name"]))
+    return sorted(servers.values(), key=lambda x: (0 if x["enabled"] else 1, -x["tokens"], x["name"]))
 
 
 def _skill_frontmatter_name(skill_md: Path, fallback: str) -> str:
@@ -496,32 +517,33 @@ def _expand_home(raw: str, home: str) -> str:
 
 
 def detect_skills(home: str, workspace: str | None, app_dir: str, loaded_skill_files: list[tuple[str, int]]) -> list[dict]:
-    """Collect all registered skills from workspace/user/config/plugin/builtin roots and mark loaded ones."""
+    """Collect registered skills (enabled and disabled) from workspace/user/config/plugin/builtin roots."""
     loaded_by_path: dict[str, int] = {}
     for p, tok in loaded_skill_files:
         norm = p.replace("\\", "/")
         loaded_by_path[norm] = loaded_by_path.get(norm, 0) + tok
 
-    roots: list[tuple[str, str, list[str]]] = []
+    # Each root tuple: (root_dir, source, excludes, toggle_kind, config_path, entry_index, plugin_name, plugin_enabled)
+    roots: list[tuple[str, str, list[str], str, str, int, str, bool]] = []
     if workspace:
         ws = os.path.abspath(workspace)
         for dot in (".agents", ".agent", "_agents"):
-            roots.append((os.path.join(ws, dot, "skills"), "工作区", []))
+            roots.append((os.path.join(ws, dot, "skills"), "工作区", [], "skill_file", "", -1, "", True))
 
-    skills_cfg = os.path.join(home, ".gemini", "config", "skills.json")
+    skills_cfg = os.path.abspath(os.path.join(home, ".gemini", "config", "skills.json"))
     try:
         with open(skills_cfg, encoding="utf-8") as fh:
             entries = (json.load(fh) or {}).get("entries") or []
-        for entry in entries:
+        for idx, entry in enumerate(entries):
             if isinstance(entry, dict) and isinstance(entry.get("path"), str):
                 excl = [x for x in (entry.get("exclude") or []) if isinstance(x, str)]
-                roots.append((_expand_home(entry["path"], home), "用户配置", excl))
+                roots.append((_expand_home(entry["path"], home), "用户配置", excl, "skills_json", skills_cfg, idx, "", True))
     except (OSError, ValueError):
         pass
 
-    roots.append((os.path.join(home, ".gemini", "skills"), "用户全局", []))
+    roots.append((os.path.join(home, ".gemini", "skills"), "用户全局", [], "skill_file", "", -1, "", True))
     if app_dir:
-        roots.append((os.path.join(home, ".gemini", app_dir, "skills"), "用户全局", []))
+        roots.append((os.path.join(home, ".gemini", app_dir, "skills"), "用户全局", [], "skill_file", "", -1, "", True))
 
     disabled_plugins = _load_disabled_plugins(home)
     plugin_roots = [os.path.join(home, ".gemini", "config", "plugins")]
@@ -537,31 +559,32 @@ def detect_skills(home: str, workspace: str | None, app_dir: str, loaded_skill_f
         except OSError:
             continue
         for pdir in pnames:
-            if pdir in disabled_plugins or pdir.startswith("."):
+            if pdir.startswith("."):
                 continue
             pfull = os.path.join(proot, pdir)
             sdir = os.path.join(pfull, "skills")
             if not os.path.isdir(sdir):
                 continue
+            plugin_enabled = pdir not in disabled_plugins
             pjson = os.path.join(pfull, "plugin.json")
             if os.path.isfile(pjson):
                 try:
                     with open(pjson, encoding="utf-8") as fh:
                         if json.load(fh).get("disabled") is True:
-                            continue
+                            plugin_enabled = False
                 except (OSError, ValueError):
                     pass
-            roots.append((sdir, f"插件 · {pdir}", []))
+            roots.append((sdir, f"插件 · {pdir}", [], "plugin", "", -1, pdir, plugin_enabled))
 
     if app_dir:
-        roots.append((os.path.join(home, ".gemini", app_dir, "builtin", "skills"), "内置", []))
+        roots.append((os.path.join(home, ".gemini", app_dir, "builtin", "skills"), "内置", [], "", "", -1, "", True))
 
     seen_real: set[str] = set()
     seen_names: set[str] = set()
     matched_loaded: set[str] = set()
     items: list[dict] = []
 
-    for root_dir, source, excludes in roots:
+    for root_dir, source, excludes, toggle_kind, config_path, entry_index, plugin_name, plugin_enabled in roots:
         if not os.path.isdir(root_dir):
             continue
         patterns = []
@@ -575,15 +598,25 @@ def detect_skills(home: str, workspace: str | None, app_dir: str, loaded_skill_f
         except OSError:
             continue
         for child in children:
-            if child.startswith(".") or any(p.search(child) for p in patterns):
+            if child.startswith("."):
                 continue
             cdir = os.path.join(root_dir, child)
             if not os.path.isdir(cdir):
                 continue
-            skill_md = Path(cdir) / "SKILL.md"
-            if not skill_md.is_file():
+            active_md = Path(cdir) / "SKILL.md"
+            disabled_md = Path(cdir) / "SKILL.md.disabled"
+            if active_md.is_file():
+                skill_md = active_md
+                file_enabled = True
+            elif toggle_kind == "skill_file" and disabled_md.is_file():
+                skill_md = disabled_md
+                file_enabled = False
+            else:
                 continue
-            real = os.path.realpath(skill_md)
+
+            excluded = any(p.search(child) for p in patterns)
+            enabled = file_enabled and plugin_enabled and not excluded
+            real = os.path.realpath(cdir)
             if real in seen_real:
                 continue
             seen_real.add(real)
@@ -591,7 +624,7 @@ def detect_skills(home: str, workspace: str | None, app_dir: str, loaded_skill_f
             if name in seen_names:
                 continue
             seen_names.add(name)
-            short = shorten_path(str(skill_md))
+            short = shorten_path(str(active_md))
             norm_short = short.replace("\\", "/")
             loaded = norm_short in loaded_by_path
             tok = loaded_by_path.get(norm_short, 0)
@@ -599,10 +632,17 @@ def detect_skills(home: str, workspace: str | None, app_dir: str, loaded_skill_f
                 matched_loaded.add(norm_short)
             items.append({
                 "name": name,
+                "dir_name": child,
                 "source": source,
                 "path": short,
                 "loaded": loaded,
                 "tokens": tok,
+                "enabled": enabled,
+                "toggle_kind": toggle_kind,
+                "config_path": config_path,
+                "entry_index": entry_index,
+                "skill_dir": os.path.abspath(cdir) if toggle_kind == "skill_file" else "",
+                "plugin_name": plugin_name,
             })
 
     for norm_path, tok in loaded_by_path.items():
@@ -612,10 +652,17 @@ def detect_skills(home: str, workspace: str | None, app_dir: str, loaded_skill_f
         fallback = parts[-2] if len(parts) >= 2 and parts[-1] == "SKILL.md" else (parts[-1] if parts else norm_path)
         items.append({
             "name": fallback,
+            "dir_name": fallback,
             "source": "当前会话",
             "path": norm_path,
             "loaded": True,
             "tokens": tok,
+            "enabled": True,
+            "toggle_kind": "",
+            "config_path": "",
+            "entry_index": -1,
+            "skill_dir": "",
+            "plugin_name": "",
         })
 
     def src_rank(src: str) -> int:
@@ -631,7 +678,7 @@ def detect_skills(home: str, workspace: str | None, app_dir: str, loaded_skill_f
             return 4
         return 5
 
-    items.sort(key=lambda x: (0 if x["loaded"] else 1, -x["tokens"], src_rank(x["source"]), x["name"].lower()))
+    items.sort(key=lambda x: (0 if x["loaded"] else 1, 0 if x["enabled"] else 1, -x["tokens"], src_rank(x["source"]), x["name"].lower()))
     return items
 
 
