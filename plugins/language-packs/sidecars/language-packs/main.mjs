@@ -27,6 +27,7 @@ const actions = {
   activate: ({ locale }) => manager.activate(locale),
   deactivate: () => manager.deactivate(),
   update: ({ locale, dictionary }) => manager.update(locale, dictionary),
+  reset: ({ locale } = {}) => manager.reset(locale),
 };
 for (const [name, action] of Object.entries(actions)) {
   app.api(`/api/${name}`, (request) => {

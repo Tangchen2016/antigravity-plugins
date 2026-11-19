@@ -7,13 +7,13 @@
   <style>
     :root {
       color-scheme: light dark;
-      --ink: var(--foreground, CanvasText);
-      --surface: var(--background, Canvas);
-      --muted: color-mix(in srgb, var(--ink) 68%, var(--surface));
-      --line: var(--border, color-mix(in srgb, var(--ink) 15%, transparent));
-      --quiet: color-mix(in srgb, var(--ink) 4%, var(--surface));
-      --hover: color-mix(in srgb, var(--ink) 9%, var(--surface));
-      --error: light-dark(#a22323, #ffb4ab);
+      --ink: var(--foreground, #1f2328);
+      --surface: var(--background, transparent);
+      --muted: var(--muted-foreground, #57606a);
+      --line: var(--border, rgba(127, 127, 127, .24));
+      --quiet: color-mix(in srgb, var(--ink) 4%, transparent);
+      --hover: color-mix(in srgb, var(--ink) 8%, transparent);
+      --error: light-dark(#cf222e, #ffb4ab);
     }
 
     * { box-sizing: border-box; }
@@ -22,18 +22,25 @@
     body {
       margin: 0;
       color: var(--ink);
-      background: var(--surface);
-      font: 13px/1.55 system-ui, sans-serif;
+      background: transparent;
+      font: 13px/1.55 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      -webkit-font-smoothing: antialiased;
     }
 
     main { max-inline-size: 620px; padding: 16px; }
     h1, h2, p { margin: 0; }
-    h1 { font-size: 19px; font-weight: 620; letter-spacing: -.01em; }
+    h1 { font-size: 18px; font-weight: 650; letter-spacing: -.01em; }
     h2 { font-size: 14px; font-weight: 600; }
     .muted { color: var(--muted); }
 
-    .intro { margin-block-end: 16px; }
-    .intro p { margin-block-start: 4px; }
+    .intro {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+      margin-block-end: 16px;
+    }
+    .intro p { margin-block-start: 4px; font-size: 12.5px; }
 
     .packs {
       border: 1px solid var(--line);
@@ -60,21 +67,24 @@
     .pack-actions { display: flex; flex-wrap: wrap; gap: 6px; }
 
     button {
-      min-block-size: 30px;
-      padding: 3px 8px;
+      min-block-size: 28px;
+      padding: 3px 10px;
       border: 1px solid var(--line);
       border-radius: 6px;
-      background: var(--surface);
+      background: transparent;
       color: var(--ink);
       font: inherit;
+      font-size: 12.5px;
       white-space: nowrap;
       cursor: pointer;
+      transition: background .12s ease, color .12s ease, border-color .12s ease;
     }
 
-    button:hover:enabled { background: var(--hover); }
+    button:hover:enabled { background: var(--hover); border-color: color-mix(in srgb, var(--muted) 55%, transparent); }
     button:focus-visible { outline: 2px solid currentColor; outline-offset: -3px; }
-    button:disabled { opacity: .55; cursor: default; }
+    button:disabled { opacity: .45; cursor: default; }
     .secondary { color: var(--muted); }
+    .secondary:hover:enabled { color: var(--ink); }
 
     .feedback { margin-block: 12px; overflow-wrap: anywhere; }
     .feedback button { margin-block-start: 8px; }
@@ -90,8 +100,11 @@
 <body>
   <main>
     <header class="intro">
-      <h1>界面语言</h1>
-      <p id="selection" class="muted">正在读取语言包…</p>
+      <div>
+        <h1>界面语言</h1>
+        <p id="selection" class="muted">正在读取语言包…</p>
+      </div>
+      <button type="button" id="reset-all" class="secondary" title="停用当前语言包并还原全部为扩展内置词库" disabled>还原默认</button>
     </header>
 
     <section id="packs" class="packs" aria-label="语言包" aria-busy="true" hidden>
@@ -107,6 +120,7 @@
           <button type="button" data-action="activate" aria-label="启用简体中文" disabled>启用</button>
           <button type="button" data-action="deactivate" aria-label="停用简体中文" disabled hidden>停用</button>
           <button type="button" data-action="update" class="secondary" aria-label="更新简体中文词库" disabled>更新词库</button>
+          <button type="button" data-action="reset" class="secondary" aria-label="还原简体中文内置词库" disabled hidden>还原内置</button>
           <input type="file" accept=".json,application/json" hidden>
         </div>
       </article>
@@ -122,6 +136,7 @@
           <button type="button" data-action="activate" aria-label="启用繁体中文" disabled>启用</button>
           <button type="button" data-action="deactivate" aria-label="停用繁体中文" disabled hidden>停用</button>
           <button type="button" data-action="update" class="secondary" aria-label="更新繁体中文词库" disabled>更新词库</button>
+          <button type="button" data-action="reset" class="secondary" aria-label="还原繁体中文内置词库" disabled hidden>还原内置</button>
           <input type="file" accept=".json,application/json" hidden>
         </div>
       </article>
@@ -140,6 +155,7 @@
     const selection = document.querySelector('#selection');
     const feedback = document.querySelector('#feedback');
     const retry = document.querySelector('#retry');
+    const resetAll = document.querySelector('#reset-all');
     const rows = Array.from(list.querySelectorAll('.pack'));
     const number = new Intl.NumberFormat('zh-CN');
     const time = new Intl.DateTimeFormat('zh-CN', { dateStyle: 'short', timeStyle: 'short' });
@@ -173,6 +189,7 @@
         const activate = row.querySelector('[data-action="activate"]');
         const deactivate = row.querySelector('[data-action="deactivate"]');
         const update = row.querySelector('[data-action="update"]');
+        const reset = row.querySelector('[data-action="reset"]');
 
         row.dataset.active = String(active);
         status.hidden = !active;
@@ -187,8 +204,11 @@
         activate.textContent = active ? '应用更新' : '启用';
         activate.setAttribute('aria-label', active ? `应用${labels[locale]}更新` : `启用${labels[locale]}`);
         deactivate.hidden = !active;
-        activate.disabled = deactivate.disabled = update.disabled = !available;
+        reset.hidden = pack?.source !== 'imported';
+        activate.disabled = deactivate.disabled = update.disabled = reset.disabled = !available;
       }
+      const hasChanges = Boolean(state.activeLocale) || state.packs.some((item) => item.source === 'imported');
+      resetAll.disabled = !state.ready || busy || !hasChanges;
     }
 
     async function request(action, data) {
@@ -252,6 +272,9 @@
         run('deactivate', {}, '正在停用语言包…', '已恢复基础词库。');
       });
       row.querySelector('[data-action="update"]').addEventListener('click', () => fileInput.click());
+      row.querySelector('[data-action="reset"]').addEventListener('click', () => {
+        run('reset', { locale }, `正在还原${label}内置词库…`, `${label}已还原为扩展内置词库。`);
+      });
       fileInput.addEventListener('change', () => {
         const [file] = fileInput.files;
         fileInput.value = '';
@@ -261,6 +284,9 @@
       });
     }
 
+    resetAll.addEventListener('click', () => {
+      run('reset', {}, '正在还原默认语言设置…', '已停用语言包并还原全部内置词库。');
+    });
     retry.addEventListener('click', () => run('state', {}, '正在重新检查语言包…'));
     run('state', {}, '');
   </script>

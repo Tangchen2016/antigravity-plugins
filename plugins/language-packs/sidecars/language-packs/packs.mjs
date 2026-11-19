@@ -162,5 +162,26 @@ export function createPackManager({ directory, dataDirectory, bundledDirectory }
       }
       return state();
     },
+
+    reset(locale) {
+      requireDirectory();
+      const active = readActive();
+      if (locale) {
+        if (!locales.includes(locale)) throw new PackError('请选择简体中文或繁體中文。');
+        const imported = join(dataDirectory, `${locale}.json`);
+        if (readFile(imported)) unlinkSync(imported);
+        if (active?.locale === locale) {
+          const { dictionary } = readPack(locale);
+          writeFile(overlay, { ...dictionary, [localeKey]: locale });
+        }
+        return state();
+      }
+      if (active) unlinkSync(overlay);
+      for (const item of locales) {
+        const imported = join(dataDirectory, `${item}.json`);
+        if (readFile(imported)) unlinkSync(imported);
+      }
+      return state();
+    },
   };
 }
