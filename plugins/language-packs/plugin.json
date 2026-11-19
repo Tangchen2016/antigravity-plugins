@@ -2,5 +2,5 @@
   "name": "language-packs",
   "displayName": "语言包管理",
   "description": "在侧面板启用、停用或更新 Antigravity 的简体和繁体词库。",
-  "version": "0.2.1"
+  "version": "0.2.2"
 }

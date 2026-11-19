@@ -8,6 +8,7 @@ import { createPackManager, PackError } from './packs.mjs';
 
 const require = createRequire(import.meta.url);
 const { readAsarLayout } = require('../../runtime/src/asar_patcher.js');
+const { computeRuntimeRev, extractRuntimeRev } = require('../../runtime/src/runtime_rev.js');
 
 const dataDirectory = process.env.ANTIGRAVITY_EXECUTABLE_DATA_DIR;
 if (!dataDirectory || !process.env.ANTIGRAVITY_SIDECAR_UI_TOKEN) {
@@ -35,6 +36,9 @@ function getRuntimeStatus() {
   const prevNoAsar = process.noAsar;
   let appFound = false;
   let installed = false;
+  let needsUpdate = false;
+  let installedRev = null;
+  const currentRev = computeRuntimeRev(runtimeDir);
   let detectError = null;
   try {
     process.noAsar = true;
@@ -46,9 +50,14 @@ function getRuntimeStatus() {
       const normalizedDir = directory.replace(/\/+$/, '');
       installed = preload.includes('ANTIGRAVITY CHINESE LOCALIZATION START')
         && (utils.includes(normalizedDir) || utils.includes(JSON.stringify(normalizedDir)));
+      if (installed) {
+        installedRev = extractRuntimeRev(preload);
+        needsUpdate = installedRev !== currentRev;
+      }
     }
   } catch (err) {
     installed = false;
+    needsUpdate = false;
     detectError = err?.message || String(err);
   } finally {
     process.noAsar = prevNoAsar;
@@ -57,6 +66,9 @@ function getRuntimeStatus() {
     supported: isMac,
     appFound,
     installed,
+    needsUpdate,
+    installedRev,
+    currentRev,
     detectError,
     installCmd: `bash "${installScript}"`,
     uninstallCmd: `bash "${uninstallScript}"`,

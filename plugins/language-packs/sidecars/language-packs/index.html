@@ -13,6 +13,7 @@
       --quiet: color-mix(in srgb, var(--ink) 4%, transparent);
       --hover: color-mix(in srgb, var(--ink) 8%, transparent);
       --ok: #34a853;
+      --warn: #f9ab00;
       --error: light-dark(#cf222e, #ffb4ab);
     }
 
@@ -72,6 +73,24 @@
       color: var(--ok);
       background: color-mix(in srgb, var(--ok) 12%, transparent);
       border-color: color-mix(in srgb, var(--ok) 36%, transparent);
+    }
+    .pill.warn {
+      color: var(--warn);
+      background: color-mix(in srgb, var(--warn) 14%, transparent);
+      border-color: color-mix(in srgb, var(--warn) 40%, transparent);
+    }
+    .runtime-card.needs-update {
+      border-color: color-mix(in srgb, var(--warn) 42%, transparent);
+      background: color-mix(in srgb, var(--warn) 7%, var(--quiet));
+    }
+    button.warn {
+      color: var(--warn);
+      background: color-mix(in srgb, var(--warn) 14%, transparent);
+      border-color: color-mix(in srgb, var(--warn) 42%, transparent);
+    }
+    button.warn:hover:enabled {
+      background: color-mix(in srgb, var(--warn) 22%, transparent);
+      border-color: color-mix(in srgb, var(--warn) 60%, transparent);
     }
 
     .pack {
@@ -213,12 +232,18 @@
     function renderRuntime(rt) {
       if (!rt) { runtimeCard.hidden = true; return; }
       runtimeCard.hidden = false;
-      runtimePill.classList.toggle('ok', Boolean(rt.installed));
-      runtimePill.textContent = rt.installed ? '已安装' : '未安装';
-      runtimeDesc.textContent = rt.installed
-        ? '主窗口已注入监听引擎；Antigravity 更新版本后可点右侧在终端重新安装。'
-        : '首次使用点击右侧按钮将打开系统「终端」执行安装脚本，输入开机密码完成并重启 Antigravity。';
-      runtimeInstall.textContent = rt.installed ? '重新安装' : '安装运行时';
+      const needsUpdate = Boolean(rt.installed && rt.needsUpdate);
+      runtimeCard.classList.toggle('needs-update', needsUpdate);
+      runtimePill.classList.toggle('ok', Boolean(rt.installed && !needsUpdate));
+      runtimePill.classList.toggle('warn', needsUpdate);
+      runtimePill.textContent = needsUpdate ? '有更新' : rt.installed ? '已安装' : '未安装';
+      runtimeDesc.textContent = needsUpdate
+        ? '检测到运行时引擎有新版本（含新增动态翻译规则或主进程补丁），请点下方按钮重新安装并重启 Antigravity。'
+        : rt.installed
+          ? '主窗口已注入监听引擎；Antigravity 更新版本后可点右侧在终端重新安装。'
+          : '首次使用点击右侧按钮将打开系统「终端」执行安装脚本，输入开机密码完成并重启 Antigravity。';
+      runtimeInstall.classList.toggle('warn', needsUpdate);
+      runtimeInstall.textContent = needsUpdate ? '更新运行时' : rt.installed ? '重新安装' : '安装运行时';
       runtimeUninstall.hidden = !rt.installed;
       runtimeInstall.disabled = busy || !rt.supported || !rt.appFound;
       runtimeUninstall.disabled = busy || !rt.supported;

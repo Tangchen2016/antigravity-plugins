@@ -60,3 +60,13 @@ test('leave a foreign overlay intact', (t) => {
   assert.throws(() => manager.activate('zh-CN'), /不属于此扩展/);
   assert.equal(readFileSync(overlay, 'utf8'), '{"Settings":"我的词库"}');
 });
+
+test('runtime revision fingerprint detects outdated injected preload', async () => {
+  const { createRequire } = await import('node:module');
+  const require = createRequire(import.meta.url);
+  const { computeRuntimeRev, formatRuntimeRevMarker, extractRuntimeRev } = require('../runtime/src/runtime_rev.js');
+  const rev = computeRuntimeRev(new URL('../runtime', import.meta.url).pathname);
+  assert.match(rev, /^[a-f0-9]{12}$/);
+  assert.equal(extractRuntimeRev(formatRuntimeRevMarker(rev)), rev);
+  assert.equal(extractRuntimeRev('/* no marker */'), null);
+});

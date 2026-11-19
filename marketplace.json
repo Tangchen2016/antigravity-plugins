@@ -15,7 +15,7 @@
     {
       "name": "language-packs",
       "displayName": "语言包管理",
-      "version": "0.2.1",
+      "version": "0.2.2",
       "type": "侧边栏扩展",
       "description": "自包含中文汉化与语言包管理扩展，面板内一键安装/卸载监听运行时，支持简体/繁体/原版英文 3 秒热切换。",
       "path": "plugins/language-packs",

@@ -5,6 +5,7 @@ const crypto = require('crypto');
 const child_process = require('child_process');
 
 const { readAsarLayout, patchAsarArchive, validateAsarCandidate } = require('./src/asar_patcher');
+const { computeRuntimeRev, formatRuntimeRevMarker } = require('./src/runtime_rev');
 const {
     patchPreloadJs,
     patchUtilsJs,
@@ -238,7 +239,8 @@ function generateJs() {
         .replace('__USE_TW_PLACEHOLDER__', () => (USE_TW ? 'true' : 'false'))
         .replace('DICT_PLACEHOLDER', () => dictJson);
 
-    return `${SIGNATURE_START}\n${body}\n${SIGNATURE_END}`;
+    const revMarker = formatRuntimeRevMarker(computeRuntimeRev(__dirname));
+    return `${SIGNATURE_START}\n${revMarker}\n${body}\n${SIGNATURE_END}`;
 }
 
 let wasAppRunning = false;
