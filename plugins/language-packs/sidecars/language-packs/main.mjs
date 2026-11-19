@@ -32,24 +32,32 @@ function getRuntimeStatus() {
   const isMac = process.platform === 'darwin';
   const resourcesDir = '/Applications/Antigravity.app/Contents/Resources';
   const asarPath = join(resourcesDir, 'app.asar');
-  const appFound = isMac && existsSync(asarPath);
+  const prevNoAsar = process.noAsar;
+  let appFound = false;
   let installed = false;
-  if (appFound) {
-    try {
+  let detectError = null;
+  try {
+    process.noAsar = true;
+    appFound = isMac && existsSync(asarPath);
+    if (appFound) {
       const layout = readAsarLayout(asarPath);
       const preload = layout.files.get('dist/preload.js')?.body?.toString('utf8') || '';
       const utils = layout.files.get('dist/utils.js')?.body?.toString('utf8') || '';
       const normalizedDir = directory.replace(/\/+$/, '');
       installed = preload.includes('ANTIGRAVITY CHINESE LOCALIZATION START')
         && (utils.includes(normalizedDir) || utils.includes(JSON.stringify(normalizedDir)));
-    } catch {
-      installed = false;
     }
+  } catch (err) {
+    installed = false;
+    detectError = err?.message || String(err);
+  } finally {
+    process.noAsar = prevNoAsar;
   }
   return {
     supported: isMac,
     appFound,
     installed,
+    detectError,
     installCmd: `bash "${installScript}"`,
     uninstallCmd: `bash "${uninstallScript}"`,
   };
