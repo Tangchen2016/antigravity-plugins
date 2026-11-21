@@ -775,7 +775,7 @@ function main() {
 
     const args = process.argv.slice(2);
     for (let i = 0; i < args.length; i++) {
-        if (args[i] === '--huifu') {
+        if (args[i] === '--huifu' || args[i] === '--restore' || args[i] === '--uninstall') {
             huifu = true;
         } else if (args[i] === '--install-dir') {
             if (i + 1 >= args.length || !args[i + 1] || args[i + 1].startsWith('--')) {
