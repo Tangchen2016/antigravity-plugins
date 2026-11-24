@@ -157,7 +157,8 @@ function validateAsarCandidate(sourcePath, candidatePath, signatureStart) {
         'dist/cablev2.js',
         'dist/remote/sshArgs.js',
         'dist/remote/sshErrorText.js',
-        'dist/wsl.js'
+        'dist/wsl.js',
+        'dist/computer/hud.js'
     ]);
     if (before.files.size !== after.files.size) throw new Error('ASAR file list changed');
     for (const [name, original] of before.files) {

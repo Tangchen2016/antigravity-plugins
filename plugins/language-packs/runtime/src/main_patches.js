@@ -500,11 +500,11 @@ const MAIN_PROCESS_TEXT_TABLES = {
         ["`Identity provider: ${provider}`", "`身份提供方：${provider}`", "`身分提供者：${provider}`"]
     ],
     'dist/remote/sshPrompts.js': [
-        ["message: confirm ? `${label} asks:` : 'Touch your security key',", "message: confirm ? `${label} 询问：` : '请轻触您的安全密钥',", "message: confirm ? `${label} 詢問：` : '請輕觸您的安全金鑰',"],
+        ["const TOUCH_TITLE = 'Touch your security key';", "const TOUCH_TITLE = '请轻触您的安全密钥';", "const TOUCH_TITLE = '請輕觸您的安全金鑰';"],
         ["buttons: confirm ? ['Yes', 'No'] : ['Cancel'],", "buttons: confirm ? ['是', '否'] : ['取消'],", "buttons: confirm ? ['是', '否'] : ['取消'],"],
         [">Asked again: your last answer may not have worked.<", ">再次询问：您上次的回答可能未生效。<", ">再次詢問：您上次的回答可能無效。<"],
         [">That's too long.<", ">输入内容过长。<", ">輸入內容過長。<"],
-        ['>Cancel</button><button id="continue">Continue</button>', '>取消</button><button id="continue">继续</button>', '>取消</button><button id="continue">繼續</button>']
+        ['<button id="cancel" class="secondary">Cancel</button><button id="continue" class="primary">Continue</button>', '<button id="cancel" class="secondary">取消</button><button id="continue" class="primary">继续</button>', '<button id="cancel" class="secondary">取消</button><button id="continue" class="primary">繼續</button>']
     ],
     'dist/deviceChooser.js': [
         ["hid: 'HID device',", "hid: 'HID 设备',", "hid: 'HID 裝置',"],
@@ -560,18 +560,26 @@ const MAIN_PROCESS_TEXT_TABLES = {
         ['<button class="btn-primary" id="btn-skip">Explore the new Antigravity</button>', '<button class="btn-primary" id="btn-skip">开始探索全新 Antigravity</button>', '<button class="btn-primary" id="btn-skip">開始探索全新 Antigravity</button>']
     ],
     'dist/remote/disconnectedPage.js': [
-        ["const title = connecting ? 'Reconnecting…' : 'Disconnected';", "const title = connecting ? '正在重新连接…' : '连接已断开';", "const title = connecting ? '正在重新連線…' : '連線已中斷';"],
+        ["reconnect: 'Reconnect',", "reconnect: '重新连接',", "reconnect: '重新連線',"],
+        ["stop: 'Stop Server',", "stop: '停止服务',", "stop: '停止伺服器',"],
+        ["close: 'Close',", "close: '关闭',", "close: '關閉',"],
+        ["? 'Restarting…'", "? '正在重启…'", "? '正在重新啟動…'"],
+        ["? 'Reconnecting…'", "? '正在重新连接…'", "? '正在重新連線…'"],
+        [": 'Disconnected';", ": '连接已断开';", ": '連線已中斷';"],
+        ["? `Restarting the Antigravity server on ${host}…`", "? `正在重启 ${host} 上的 Antigravity 服务…`", "? `正在重新啟動 ${host} 上的 Antigravity 伺服器…`"],
         ["? `Reconnecting to ${host}…`", "? `正在重新连接到 ${host}…`", "? `正在重新連線至 ${host}…`"],
         [": `Disconnected from ${host}`;", ": `已与 ${host} 断开连接`;", ": `已與 ${host} 中斷連線`;"],
-        ["? `Agents keep running on ${host}.`", "? `智能体仍在 ${host} 上继续运行。`", "? `代理仍在 ${host} 上繼續執行。`"],
-        [": `Agents keep running on ${host} unless its server stopped.`;", ": `除非服务端已停止，否则智能体仍会在 ${host} 上继续运行。`;", ": `除非伺服器已停止，否則代理仍會在 ${host} 上繼續執行。`;"],
-        ['>Reconnect</a>`', '>重新连接</a>`', '>重新連線</a>`'],
-        ['>Close</a></div>', '>关闭</a></div>', '>關閉</a></div>']
+        ["? 'This window opens it again once it has started.'", "? '服务启动后，此窗口会自动重新打开。'", "? '伺服器啟動後，此視窗會自動重新開啟。'"],
+        ["? `Its server on ${host} stopped, and its agents with it.`", "? `${host} 上的服务已停止，其上的智能体也随之停止。`", "? `${host} 上的伺服器已停止，其上的代理也隨之停止。`"],
+        [": `Agents keep running on ${host}.`", ": `智能体仍在 ${host} 上继续运行。`", ": `代理仍在 ${host} 上繼續執行。`"],
+        ["? `Its agents on ${host} stopped with it.`", "? `${host} 上的智能体也随之停止。`", "? `${host} 上的代理也隨之停止。`"],
+        [": `Agents keep running on ${host} unless its server stopped.`;", ": `除非服务端已停止，否则智能体仍会在 ${host} 上继续运行。`;", ": `除非伺服器已停止，否則代理仍會在 ${host} 上繼續執行。`;"]
     ],
     'dist/remote/signInCallback.js': [
-        ["body: page('Signed in', 'Signed in. You can close this tab.'),", "body: page('登录成功', '已完成登录，您可以关闭此标签页。'),", "body: page('登入成功', '已完成登入，您可以關閉此分頁。'),"],
-        ["body: page('Sign-in did not complete', 'The Antigravity server on the SSH host could not be reached. ' +\n        'Sign in again from Antigravity.'),", "body: page('登录未完成', '无法连接到 SSH 主机上的 Antigravity 服务。请从 Antigravity 重新发起登录。'),", "body: page('登入未完成', '無法連線至 SSH 主機上的 Antigravity 伺服器。請從 Antigravity 重新登入。'),"],
-        ["body: page('Sign-in did not complete', `The Antigravity server on the SSH host answered with HTTP ${status}. ` +\n            'Sign in again from Antigravity.'),", "body: page('登录未完成', `SSH 主机上的 Antigravity 服务返回了 HTTP ${status}。请从 Antigravity 重新发起登录。`),", "body: page('登入未完成', `SSH 主機上的 Antigravity 伺服器回應了 HTTP ${status}。請從 Antigravity 重新登入。`),"]
+        ["const SIGNED_IN = page('You have successfully authenticated.', 'You can close this tab and return to Antigravity.');", "const SIGNED_IN = page('身份验证成功', '您可以关闭此标签页并返回 Antigravity。');", "const SIGNED_IN = page('驗證成功', '您可以關閉此分頁並返回 Antigravity。');"],
+        ["return page(\"Sign-in didn't finish\", `Antigravity couldn't reach ${host} to finish signing in. ` +\n        'Sign in again from Antigravity.');", "return page('登录未完成', `Antigravity 无法连接到 ${host} 以完成登录。请从 Antigravity 重新发起登录。`);", "return page('登入未完成', `Antigravity 無法連線至 ${host} 以完成登入。請從 Antigravity 重新登入。`);"],
+        ["return page(\"Sign-in didn't finish\", 'This sign-in came back from another server than the sign-in page you ' +\n        `agreed to, so Antigravity didn't pass it on to ${host}.`);", "return page('登录未完成', `此登录响应来自与您确认的登录页面不同的服务器，因此 Antigravity 未将其传递给 ${host}。`);", "return page('登入未完成', `此登入回應來自與您確認的登入頁面不同的伺服器，因此 Antigravity 未將其傳遞給 ${host}。`);"],
+        ["return page(\"Sign-in didn't finish\", `Antigravity on ${host} couldn't finish signing in (HTTP ${status}). ` +\n        'Sign in again from Antigravity.');", "return page('登录未完成', `${host} 上的 Antigravity 无法完成登录（HTTP ${status}）。请从 Antigravity 重新发起登录。`);", "return page('登入未完成', `${host} 上的 Antigravity 無法完成登入（HTTP ${status}）。請從 Antigravity 重新登入。`);"]
     ],
     'dist/cablev2.js': [
         ["<title>Passkeys</title>", "<title>通行密钥 (Passkeys)</title>", "<title>通行金鑰 (Passkeys)</title>"],
@@ -590,8 +598,8 @@ const MAIN_PROCESS_TEXT_TABLES = {
         [': "The host\'s SSH key has changed or isn\'t trusted. If it changed, ask the host\'s owner first: the connection may be intercepted.";', ': "该主机的 SSH 密钥已变更或不受信任。若密钥发生变更，请先向主机所有者确认，连接可能遭到拦截。";', ': "該主機的 SSH 金鑰已變更或不受信任。若金鑰發生變更，請先向主機擁有者確認，連線可能遭到攔截。";'],
         ["return `Couldn't connect to the SSH host. Check its name, your network and ssh config (e.g. a ProxyCommand), and that ssh to it works in a terminal${prompts === 'no' ? ' without a prompt' : ''}.`;", "return `无法连接到 SSH 主机。请检查主机名、网络与 ssh 配置（如 ProxyCommand），并确认在终端中可正常通过 ssh 连接${prompts === 'no' ? '（无需交互提示）' : ''}。`;", "return `無法連線至 SSH 主機。請檢查主機名稱、網路與 ssh 設定（例如 ProxyCommand），並確認在終端機中可正常透過 ssh 連線${prompts === 'no' ? '（無需互動提示）' : ''}。`;"],
         ["return 'SSH port forwarding failed. Make sure the server allows TCP forwarding (AllowTcpForwarding) for your account, then try again.';", "return 'SSH 端口转发失败。请确认服务器允许您的账户使用 TCP 转发 (AllowTcpForwarding)，然后重试。';", "return 'SSH 連接埠轉發失敗。請確認伺服器允許您的帳戶使用 TCP 轉發 (AllowTcpForwarding)，然後再試一次。';"],
-        ['return "The SSH host isn\'t supported. Antigravity needs Linux on x64 or arm64 with glibc 2.26 or newer.";', 'return "不支持该 SSH 主机。Antigravity 需要 x64 或 arm64 架构且 glibc 2.26 及以上的 Linux 系统。";', 'return "不支援該 SSH 主機。Antigravity 需要 x64 或 arm64 架構且 glibc 2.26 以上版本的 Linux 系統。";'],
-        ["return 'Another host that shares your home directory runs the Antigravity server. Connect to that host instead.';", "return '另一台共享您主目录的主机正在运行 Antigravity 服务。请改为连接到该主机。';", "return '另一台共用您家目錄的主機正在執行 Antigravity 伺服器。請改為連線至該主機。';"],
+        ["return `The SSH host isn't supported. ${exports.LINUX_HOST_NEEDED} Windows and macOS hosts aren't supported yet.`;", "return `不支持该 SSH 主机。${exports.LINUX_HOST_NEEDED} 暂不支持 Windows 和 macOS 主机。`;", "return `不支援該 SSH 主機。${exports.LINUX_HOST_NEEDED} 尚未支援 Windows 與 macOS 主機。`;"],
+        ["return 'Another host that shares your home directory runs the Antigravity server. Connect to that host, or connect again and choose Take Over.';", "return '另一台共享您主目录的主机正在运行 Antigravity 服务。请连接到该主机，或重新连接并选择“接管”。';", "return '另一台共用您家目錄的主機正在執行 Antigravity 伺服器。請連線至該主機，或重新連線並選擇「接管」。';"],
         ['return "Couldn\'t install the Antigravity server on the SSH host. Make sure it has free disk space, and that it or this computer can download from the internet.";', 'return "无法在 SSH 主机上安装 Antigravity 服务。请确认磁盘空间充足，且远程主机或本机可以访问互联网下载。";', 'return "無法在 SSH 主機上安裝 Antigravity 伺服器。請確認磁碟空間充足，且遠端主機或本機可以存取網際網路下載。";'],
         ["return `The Antigravity server failed to start on the SSH host. See its log in ~/${types_1.REMOTE_INSTALL_ROOT}/data on that host.`;", "return `SSH 主机上的 Antigravity 服务启动失败。请查看该主机 ~/${types_1.REMOTE_INSTALL_ROOT}/data 中的日志。`;", "return `SSH 主機上的 Antigravity 伺服器啟動失敗。請查看該主機 ~/${types_1.REMOTE_INSTALL_ROOT}/data 中的日誌。`;"],
         ["return 'The Antigravity server on the SSH host stopped. Reconnect to start it again.';", "return 'SSH 主机上的 Antigravity 服务已停止。请重新连接以再次启动。';", "return 'SSH 主機上的 Antigravity 伺服器已停止。請重新連線以再次啟動。';"],
@@ -603,8 +611,7 @@ const MAIN_PROCESS_TEXT_TABLES = {
         ["return `Error code: ${err.code}\\nLogs: ${logPath()}`;", "return `错误代码：${err.code}\\n日志：${logPath()}`;", "return `錯誤代碼：${err.code}\\n日誌：${logPath()}`;"],
         ["return err.reportedByRemote ? `${label} reported: ${text}` : text;", "return err.reportedByRemote ? `${label} 报告：${text}` : text;", "return err.reportedByRemote ? `${label} 回報：${text}` : text;"],
         [": 'The connection was closed before it finished.';", ": '连接在完成前已关闭。';", ": '連線在完成前已關閉。';"],
-        ["return `${what}\\nFile: ${note} on ${label}`;", "return `${what}\\n文件：${label} 上的 ${note}`;", "return `${what}\\n檔案：${label} 上的 ${note}`;"],
-        ["return err.code === 'UNKNOWN' ? `${text}\\nLogs: ${logPath()}` : text;", "return err.code === 'UNKNOWN' ? `${text}\\n日志：${logPath()}` : text;", "return err.code === 'UNKNOWN' ? `${text}\\n日誌：${logPath()}` : text;"]
+        ["return pointsToLog ? `${text}\\nLogs: ${logPath()}` : text;", "return pointsToLog ? `${text}\\n日志：${logPath()}` : text;", "return pointsToLog ? `${text}\\n日誌：${logPath()}` : text;"]
     ],
     'dist/wsl.js': [
         ['error: `This folder belongs to the WSL distro "${unc[1]}", but this window is connected to "${distro}".`,', 'error: `此文件夹属于 WSL 发行版 "${unc[1]}"，但当前窗口连接的是 "${distro}"。`,', 'error: `此資料夾屬於 WSL 發行版 "${unc[1]}"，但目前視窗連線的是 "${distro}"。`,'],
@@ -612,6 +619,13 @@ const MAIN_PROCESS_TEXT_TABLES = {
         ["return { error: `This location cannot be opened in WSL: ${winPath}` };", "return { error: `无法在 WSL 中打开此位置：${winPath}` };", "return { error: `無法在 WSL 中開啟此位置：${winPath}` };"],
         ["onStatus?.('Downloading the Antigravity binary\\u2026');", "onStatus?.('正在下载 Antigravity 二进制文件…');", "onStatus?.('正在下載 Antigravity 二進位檔案…');"],
         ["onStatus?.(`Installing into ${distro}\\u2026`);", "onStatus?.(`正在安装到 ${distro}…`);", "onStatus?.(`正在安裝到 ${distro}…`);"]
+    ],
+    'dist/computer/hud.js': [
+        ["<title>AGY Desktop HUD</title>", "<title>AGY 桌面控制浮窗</title>", "<title>AGY 桌面控制浮窗</title>"],
+        ['<button id="stop">Stop</button><button id="resume" title="Let agents use this Mac again. The stopped task does not restart.">Allow again</button>', '<button id="stop">停止</button><button id="resume" title="重新允许智能体使用此 Mac。已停止的任务不会自动重启。">重新允许</button>', '<button id="stop">停止</button><button id="resume" title="重新允許代理使用此 Mac。已停止的任務不會自動重新啟動。">重新允許</button>'],
+        ["end.textContent = 'Stopped';", "end.textContent = '已停止';", "end.textContent = '已停止';"],
+        ["end.textContent = 'Stop';", "end.textContent = '停止';", "end.textContent = '停止';"],
+        ["title: 'AGY Desktop HUD',", "title: 'AGY 桌面控制浮窗',", "title: 'AGY 桌面控制浮窗',"]
     ]
 };
 

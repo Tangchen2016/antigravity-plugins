@@ -15,20 +15,11 @@
     {
       "name": "language-packs",
       "displayName": "语言包管理",
-      "version": "0.2.4",
+      "version": "0.2.5",
       "type": "侧边栏扩展",
       "description": "自包含中文汉化与语言包管理扩展，面板内一键安装/卸载监听运行时，支持简体/繁体/原版英文 3 秒热切换。",
       "path": "plugins/language-packs",
       "tags": ["i18n", "chinese", "language"]
-    },
-    {
-      "name": "progress-updates",
-      "displayName": "进度播报与节奏控制",
-      "version": "0.3.2",
-      "type": "规则 + 侧边栏",
-      "description": "自带侧边栏设置面板，按节点克制播报（≤30 字）且支持一键切换「聊天极简 TodoList / Artifact 原地看板 / 经典里程碑」三种模式。",
-      "path": "plugins/progress-updates",
-      "tags": ["rules", "workflow", "progress", "todo"]
     },
     {
       "name": "plugin-market",

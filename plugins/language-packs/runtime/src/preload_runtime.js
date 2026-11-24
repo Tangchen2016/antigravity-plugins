@@ -839,6 +839,20 @@
         }],
         [/^(Couldn't|Failed to)\s+(.+?)\s+conversation$/i, (m, _p, act) => (USE_TW ? "無法 " : "无法 ") + act + (USE_TW ? " 對話" : " 会话")],
         [/^Error while\s+(.+)$/i, (m, act) => act + (USE_TW ? " 時發生錯誤" : " 时发生错误")],
+
+        // v2.34.0 新增动态模板文案（预览端口、Cookie、远程登录、计划进度、插件包与语音重试）
+        [/^The preview did not respond on port\s+(\d+)\.?$/i, (m, port) => (USE_TW ? "預覽在連接埠 " : "预览在端口 ") + port + (USE_TW ? " 上無回應。" : " 上未响应。")],
+        [/^Delete cookies for\s+(.+)$/i, (m, site) => (USE_TW ? "刪除 " : "删除 ") + site + " 的 Cookie"],
+        [/^You're signing in on\s+(.+?)\.\s*Your sign-in stays on that machine\.?$/i, (m, host) => (USE_TW ? "您正在 " : "您正在 ") + host + (USE_TW ? " 上登入。您的登入狀態將保留在該機器上。" : " 上登录。您的登录状态将保留在该机器上。")],
+        [/^Open image\s+(\d+)\s+of\s+(\d+)$/i, (m, a, b) => (USE_TW ? "開啟第 " : "打开第 ") + a + " / " + b + (USE_TW ? " 張圖片" : " 张图片")],
+        [/^Relaunch\s+(.+?)\s+to finish Screen Recording\.?$/i, (m, app) => (USE_TW ? "重新啟動 " : "重启 ") + app + (USE_TW ? " 以完成螢幕錄製權限設定。" : " 以完成屏幕录制权限设置。")],
+        [/^Plan,\s*(\d+)\s+of\s+(\d+)\s+steps?\s+done$/i, (m, a, b) => (USE_TW ? "計畫：已完成 " : "计划：已完成 ") + a + " / " + b + (USE_TW ? " 步" : " 步")],
+        [/^Review\s+(.+?)\s+before installing$/i, (m, name) => (USE_TW ? "安裝前審查 " : "安装前审查 ") + name],
+        [/^Retrying transcription\s*\(attempt\s+(\d+)\)(?:\.\.\.|…)?$/i, (m, n) => (USE_TW ? "正在重試語音轉錄（第 " : "正在重试语音转写（第 ") + n + (USE_TW ? " 次）…" : " 次）…")],
+        [/^Adding plugins from\s+(.+)$/i, (m, src) => (USE_TW ? "正在從 " : "正在从 ") + src + (USE_TW ? " 新增外掛程式" : " 添加插件")],
+        [/^This plugin in\s+(.+?)\s+may have looser code review\.\s*Review its contents before adding the bundle\.?$/i, (m, src) => (USE_TW ? src + " 中的此外掛程式程式碼審查可能較為寬鬆。新增外掛程式包前請先檢視其內容。" : src + " 中的此插件代码审查可能较为宽松。添加插件包前请先查看其内容。")],
+        [/^Opens the New Conversation screen for this\s+(.+)$/i, (m, kind) => (USE_TW ? "為此 " : "为此 ") + kind + (USE_TW ? " 開啟新對話畫面" : " 打开新建会话页面")],
+        [/^More options for\s+(.+)$/i, (m, title) => title + (USE_TW ? " 的更多選項" : " 的更多选项")],
     ];
 
     function translateExactOrDynamic(t) {
