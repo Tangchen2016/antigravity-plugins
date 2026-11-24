@@ -11,7 +11,7 @@ import {
   writeFileSync,
 } from 'node:fs';
 import { homedir, tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { extname, join, resolve, sep } from 'node:path';
 
 export const SELF_PLUGIN = 'plugin-market';
 export const DEFAULT_SOURCES = [
@@ -70,6 +70,43 @@ export function findAgyBinary() {
   return 'agy';
 }
 
+const LOGO_MIME_MAP = {
+  '.svg': 'image/svg+xml',
+  '.png': 'image/png',
+  '.jpg': 'image/jpeg',
+  '.jpeg': 'image/jpeg',
+  '.webp': 'image/webp',
+};
+
+function readLocalLogoDataUri(pluginPath, logoRelPath) {
+  if (!pluginPath || typeof logoRelPath !== 'string') return null;
+  const trimmed = logoRelPath.trim();
+  if (!trimmed || /^https?:\/\//i.test(trimmed) || trimmed.startsWith('/')) return null;
+  const mime = LOGO_MIME_MAP[extname(trimmed).toLowerCase()];
+  if (!mime) return null;
+  try {
+    const base = resolve(pluginPath);
+    const full = resolve(base, trimmed);
+    if (!full.startsWith(base + sep)) return null;
+    if (!existsSync(full)) return null;
+    const buf = readFileSync(full);
+    if (!buf.length || buf.length > 256 * 1024) return null;
+    return `data:${mime};base64,${buf.toString('base64')}`;
+  } catch {
+    return null;
+  }
+}
+
+function buildRemoteLogoUrl(repo, branch, subPath, logoRelPath) {
+  if (!repo || typeof logoRelPath !== 'string') return null;
+  const cleanLogo = logoRelPath.trim().replace(/^\/+|\/+$/g, '');
+  if (!cleanLogo || /^https?:\/\//i.test(cleanLogo) || cleanLogo.split('/').includes('..')) return null;
+  if (!LOGO_MIME_MAP[extname(cleanLogo).toLowerCase()]) return null;
+  const cleanPath = String(subPath || '').replace(/^\/+|\/+$/g, '');
+  const joined = cleanPath ? `${cleanPath}/${cleanLogo}` : cleanLogo;
+  return `https://raw.githubusercontent.com/${repo}/${encodeURIComponent(branch || 'main')}/${joined}`;
+}
+
 function readJsonSafe(path) {
   try {
     return JSON.parse(readFileSync(path, 'utf8'));
@@ -121,6 +158,7 @@ export function createMarketManager({
       displayName: manifest.displayName || manifest.title || manifest.name || fallbackName,
       description: manifest.description || '',
       version: manifest.version || '0.0.0',
+      logoUrl: readLocalLogoDataUri(pluginPath, manifest.logo),
       type,
     };
   }
@@ -145,6 +183,7 @@ export function createMarketManager({
           version: item.version || meta.version || '0.0.0',
           enabled: item.enabled !== false,
           path: item.path || join(pluginsDir, item.name),
+          logoUrl: meta.logoUrl || null,
           type: meta.type || '插件',
           isSelf: item.name === SELF_PLUGIN,
         };
@@ -164,6 +203,7 @@ export function createMarketManager({
         version: meta.version,
         enabled: true,
         path: fullPath,
+        logoUrl: meta.logoUrl || null,
         type: meta.type,
         isSelf: d.name === SELF_PLUGIN,
       };
@@ -224,6 +264,7 @@ export function createMarketManager({
             type: p.type || '插件',
             description: p.description || '',
             path: p.path || `plugins/${p.name}`,
+            logo: typeof p.logo === 'string' ? p.logo : null,
             tags: Array.isArray(p.tags) ? p.tags : [],
             repo: src.repo,
             branch: src.branch,
@@ -274,6 +315,7 @@ export function createMarketManager({
           branch: selfBranch,
           path: selfPath,
           sourceUrl: selfSourceUrl,
+          logoUrl: selfLocal.logoUrl || buildRemoteLogoUrl(selfRepo, selfBranch, selfPath, selfRemote?.logo),
         }
       : null;
     const selfUpdate = selfHasUpdate
@@ -301,6 +343,7 @@ export function createMarketManager({
         return {
           ...item,
           sourceUrl,
+          logoUrl: local?.logoUrl || buildRemoteLogoUrl(item.repo, item.branch, item.path, item.logo),
           installed: Boolean(local),
           installedVersion: local?.version || null,
           enabled: local ? local.enabled : false,
@@ -331,6 +374,7 @@ export function createMarketManager({
           branch: remote?.branch || null,
           remotePath: remote?.path || null,
           sourceUrl,
+          logoUrl: item.logoUrl || buildRemoteLogoUrl(remote?.repo, remote?.branch, remote?.path, remote?.logo),
         };
       });
 

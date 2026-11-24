@@ -142,3 +142,57 @@ test('plugin-market updates are separated from regular plugins and handled via u
   const updatedSelf = JSON.parse(readFileSync(join(pluginsDir, 'plugin-market', 'plugin.json'), 'utf8'));
   assert.equal(updatedSelf.version, '0.1.2');
 });
+
+test('resolves local logo data URIs and remote logo URLs safely', async (t) => {
+  const root = mkdtempSync(join(tmpdir(), 'agy-market-logo-test-'));
+  t.after(() => rmSync(root, { recursive: true, force: true }));
+
+  const pluginsDir = join(root, 'plugins');
+  const dataDir = join(root, 'data');
+
+  mkdirSync(join(pluginsDir, 'language-packs', 'assets'), { recursive: true });
+  writeFileSync(
+    join(pluginsDir, 'language-packs', 'assets', 'logo.svg'),
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"></svg>',
+  );
+  writeFileSync(
+    join(pluginsDir, 'language-packs', 'plugin.json'),
+    JSON.stringify({ name: 'language-packs', displayName: '语言包管理', version: '0.2.6', logo: 'assets/logo.svg' }),
+  );
+
+  mkdirSync(join(pluginsDir, 'bad-logo'), { recursive: true });
+  writeFileSync(
+    join(pluginsDir, 'bad-logo', 'plugin.json'),
+    JSON.stringify({ name: 'bad-logo', displayName: 'Bad', version: '0.1.0', logo: '../escape.svg' }),
+  );
+
+  const mockFetch = async () => ({
+    ok: true,
+    json: async () => ({
+      plugins: [
+        { name: 'language-packs', displayName: '语言包管理', version: '0.2.6', logo: 'assets/logo.svg' },
+        { name: 'desktop-context', displayName: '上下文用量', version: '1.0.8', logo: 'assets/logo.svg' },
+      ],
+    }),
+  });
+
+  const manager = createMarketManager({
+    pluginsDir,
+    dataDir,
+    agyBin: '/nonexistent/agy',
+    fetchImpl: mockFetch,
+  });
+
+  const st = await manager.state({ force: true });
+  const lpInstalled = st.installed.find((p) => p.name === 'language-packs');
+  assert.match(lpInstalled.logoUrl || '', /^data:image\/svg\+xml;base64,/);
+
+  const badInstalled = st.installed.find((p) => p.name === 'bad-logo');
+  assert.equal(badInstalled.logoUrl, null);
+
+  const dcMarket = st.market.find((p) => p.name === 'desktop-context');
+  assert.equal(
+    dcMarket.logoUrl,
+    'https://raw.githubusercontent.com/Tangchen2016/antigravity-plugins/main/plugins/desktop-context/assets/logo.svg',
+  );
+});
