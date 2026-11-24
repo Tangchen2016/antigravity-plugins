@@ -127,6 +127,53 @@
     background: color-mix(in srgb, var(--c-danger) 15%, transparent);
     border-color: color-mix(in srgb, var(--c-danger) 42%, transparent);
   }
+  .compact-bar {
+    margin-top: 10px;
+    padding: 7px 9px;
+    border-radius: 8px;
+    border: 1px solid color-mix(in srgb, var(--c-warn) 34%, transparent);
+    background: color-mix(in srgb, var(--c-warn) 9%, transparent);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+  }
+  .compact-bar.danger {
+    border-color: color-mix(in srgb, var(--c-danger) 40%, transparent);
+    background: color-mix(in srgb, var(--c-danger) 10%, transparent);
+  }
+  .compact-tip {
+    font-size: 11.5px;
+    color: var(--fg);
+    line-height: 1.35;
+    min-width: 0;
+  }
+  .compact-btn {
+    flex: none;
+    font-size: 11.5px;
+    font-weight: 500;
+    padding: 3px 9px;
+    border-radius: 6px;
+    color: var(--c-warn);
+    background: color-mix(in srgb, var(--c-warn) 14%, transparent);
+    border-color: color-mix(in srgb, var(--c-warn) 42%, transparent);
+  }
+  .compact-btn:hover:not(:disabled) {
+    color: var(--c-warn);
+    background: color-mix(in srgb, var(--c-warn) 22%, transparent);
+    border-color: color-mix(in srgb, var(--c-warn) 58%, transparent);
+  }
+  .compact-bar.danger .compact-btn {
+    color: var(--c-danger);
+    background: color-mix(in srgb, var(--c-danger) 15%, transparent);
+    border-color: color-mix(in srgb, var(--c-danger) 45%, transparent);
+  }
+  .compact-bar.danger .compact-btn:hover:not(:disabled) {
+    color: var(--c-danger);
+    background: color-mix(in srgb, var(--c-danger) 24%, transparent);
+    border-color: color-mix(in srgb, var(--c-danger) 62%, transparent);
+  }
+  .compact-btn:disabled { opacity: .6; cursor: wait; }
 
   button {
     font: inherit; font-size: 11.5px; color: var(--dim); cursor: pointer; white-space: nowrap;
@@ -684,6 +731,9 @@
   const COPY_ICON = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5.5" y="5.5" width="8" height="8" rx="1.5"/><path d="M10.5 5.5V3.5a1.5 1.5 0 0 0-1.5-1.5H3.5A1.5 1.5 0 0 0 2 3.5V9a1.5 1.5 0 0 0 1.5 1.5h2"/></svg>';
   const CHECK_ICON = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 8.5 6.5 11.5 12.5 4.5"/></svg>';
   const CHEV_ICON = '<svg class="chev" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3.5 10.5 8 6 12.5"/></svg>';
+  const COMPACT_ICON = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 2v4m0 0-2-2m2 2 2-2M8 14v-4m0 0-2 2m2-2 2 2M2.5 8h11"/></svg>';
+  const COMPACT_WARN_PCT = 50;
+  const COMPACT_DANGER_PCT = 75;
   const COPY_LABEL = '复制文本';
   const SYSTEM = new Set(['system_prompt', 'system_tools', 'system_overhead']);
   const params = new URLSearchParams(location.search);
@@ -707,6 +757,9 @@
   let activeDot = null;
   let activeSegment = null;
   let toastTimer = null;
+  let compacting = false;
+  let compactStartTokens = 0;
+  let compactResetTimer = null;
   let modalTab = 'skill';
   let modalFilter = 'all';
   const openGroups = new Map();
@@ -993,6 +1046,60 @@
     return '';
   }
 
+  function compactBanner(r, warnPct) {
+    const isDanger = warnPct >= COMPACT_DANGER_PCT;
+    const isWarn = isDanger || warnPct >= COMPACT_WARN_PCT;
+    if (!isWarn && !compacting) return '';
+    const tip = compacting
+      ? '正在压缩上下文，完成后自动刷新'
+      : isDanger
+        ? '上下文过长，建议立即压缩'
+        : '上下文偏长，建议压缩以节省 token';
+    const btnLabel = compacting ? '压缩中…' : '压缩上下文';
+    return `<div class="compact-bar${isDanger ? ' danger' : ''}">
+      <span class="compact-tip">${tip}</span>
+      <button type="button" id="compact-btn" class="compact-btn" title="向当前会话发送 /compact 压缩历史上下文"${compacting ? ' disabled' : ''}>${COMPACT_ICON}<span>${btnLabel}</span></button>
+    </div>`;
+  }
+
+  function setCompacting(next) {
+    compacting = next;
+    clearTimeout(compactResetTimer);
+    compactResetTimer = null;
+    if (next) {
+      compactResetTimer = setTimeout(() => {
+        if (compacting) {
+          compacting = false;
+          if (report) render(report);
+        }
+      }, 25000);
+    }
+    if (report) render(report);
+  }
+
+  async function triggerCompact() {
+    if (compacting || !report) return;
+    compactStartTokens = Number(report.used_tokens) || 0;
+    if (!window.sidecar?.agent?.sendMessage || !conversationId) {
+      try {
+        await navigator.clipboard.writeText('/compact');
+        showToast('已复制 /compact，请在对话框粘贴发送');
+      } catch {
+        showToast('请在对话框输入 /compact 进行压缩', true);
+      }
+      return;
+    }
+    setCompacting(true);
+    try {
+      await window.sidecar.agent.sendMessage('/compact', conversationId);
+      showToast('已发送 /compact，正在压缩上下文…');
+      setTimeout(() => { lastJson = ''; refresh(); }, 2000);
+    } catch (err) {
+      setCompacting(false);
+      showToast(err?.message || '触发压缩失败，请手动输入 /compact', true);
+    }
+  }
+
   function render(r) {
     const focusedSegment = document.activeElement?.matches('.dot:focus-visible')
       ? document.activeElement.dataset.segment : null;
@@ -1025,6 +1132,7 @@
         </div>
         ${budgetLine}
         ${grid(r)}
+        ${compactBanner(r, warnPct)}
       </div>
       ${sessionUsage(r)}
       ${categories(r)}
@@ -1101,6 +1209,17 @@
       }
       lastJson = json;
       report = data;
+      if (compacting) {
+        const curTokens = Number(data.used_tokens) || 0;
+        const afterCompaction = /compaction/i.test(data.heading || '')
+          || (compactStartTokens > 0 && curTokens < compactStartTokens * 0.85);
+        if (afterCompaction) {
+          compacting = false;
+          clearTimeout(compactResetTimer);
+          compactResetTimer = null;
+          showToast('上下文压缩已完成');
+        }
+      }
       render(data);
       renderModal();
     } catch {
@@ -1183,6 +1302,8 @@
   }
 
   main.addEventListener('click', (event) => {
+    const compactBtn = event.target.closest('button#compact-btn');
+    if (compactBtn) return triggerCompact();
     const openBtn = event.target.closest('button[data-open-modal]');
     if (openBtn) return openModal(openBtn.dataset.openModal);
     const btn = event.target.closest('button.switch[data-toggle]');
